@@ -24,7 +24,7 @@
 <meta property="og:description" content="HDFS decomission技术背景目前有200+ 1.22PB HDFS3和100- 480T HDFS的节点，退役节点的速度较慢，每小时只能迁移150k左右的blocks，平均一台节点有600k左右的blocks，一台需要4小时左右。 节点掉线和节点退役的区别？节点退役首先正常将节点加入退役名单，先告诉namenode和yarn不要在往上提交新任务和写入数据了；然后等待节点上的数据块在集群">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2024-06-17T07:52:23.000Z">
-<meta property="article:modified_time" content="2024-06-17T08:34:20.746Z">
+<meta property="article:modified_time" content="2024-06-18T02:55:59.096Z">
 <meta property="article:author" content="Gary Chow (Yimin Cao)">
 <meta name="twitter:card" content="summary_large_image">
   
@@ -348,19 +348,19 @@
 <p>moveBlocksToPending()方法中有一段关于锁的代码很有意思</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><code class="hljs java">Iterator&lt;DatanodeDescriptor&gt; nodeIter =<br>    Iterables.cycle(iterators.keySet()).iterator();<br><span class="hljs-keyword">while</span> (nodeIter.hasNext()) &#123;<br>  <span class="hljs-comment">// Cycle through each node with blocks which still need processed</span><br>  <span class="hljs-type">DatanodeDescriptor</span> <span class="hljs-variable">dn</span> <span class="hljs-operator">=</span> nodeIter.next();<br>  Iterator&lt;BlockInfo&gt; blockIt = iterators.get(dn);<br>  <span class="hljs-keyword">while</span> (blockIt.hasNext()) &#123;<br>    <span class="hljs-comment">// Process the blocks for the node until we find one that needs</span><br>    <span class="hljs-comment">// replication</span><br>    <span class="hljs-keyword">if</span> (blocksProcessed &gt;= blocksPerLock) &#123;<br>      blocksProcessed = <span class="hljs-number">0</span>;<br>      namesystem.writeUnlock();<br>      namesystem.writeLock();<br>    &#125;<br>    blocksProcessed++;<br>    <span class="hljs-keyword">if</span> (nextBlockAddedToPending(blockIt, dn)) &#123;<br>      <span class="hljs-comment">// Exit the inner &quot;block&quot; loop so an iterator for the next datanode</span><br>      <span class="hljs-comment">// is used for the next block.</span><br>      pendingCount++;<br>      <span class="hljs-keyword">break</span>;<br>    &#125;<br>  &#125;<br></code></pre></td></tr></table></figure>
 
-<p>它在释放写锁之后立刻又申请写锁，这是因为**<code>blocksProcessed</code>** 变量用于追踪已处理的块数量。当处理的块数量达到预定的阈值 <strong><code>blocksPerLock</code></strong> 时，通过释放当前的写锁并再次获取写锁，可以让其他等待写锁的线程有机会执行。这有助于避免长时间持有写锁而导致其他线程被阻塞的情况发生，从而提高并发性能。</p>
+<p>它在释放写锁之后立刻又申请写锁，这是因为 <strong><code>blocksProcessed</code></strong> 变量用于追踪已处理的块数量。当处理的块数量达到预定的阈值 <strong><code>blocksPerLock</code></strong> 时，通过释放当前的写锁并再次获取写锁，可以让其他等待写锁的线程有机会执行。这有助于避免长时间持有写锁而导致其他线程被阻塞的情况发生，从而提高并发性能。</p>
 <aside>
 💡
 
 <p>为什么check这个函数要先调用processPendingReplication然后调用moveBlocksToPending？不能只调用一个吗？</p>
 <p>在某些情况下，可以只调用一个函数来处理块的复制状态，但在某些情况下，调用两个函数可能是必要的。让我们来看看为什么在一些情况下需要调用这两个函数：</p>
 <ol>
-<li>**<code>processPendingReplication</code>**：<ul>
+<li><code>processPendingReplication</code>：<ul>
 <li>这个函数的主要任务是处理当前处于“pending replication”状态的块，确保它们的复制数量达到所需的副本数。它通常是周期性地由调度程序调用的，以确保集群中的块保持足够的冗余度。</li>
 <li>当调用这个函数时，它会检查当前哪些块处于挂起状态，并尝试启动复制任务来复制这些块。</li>
 </ul>
 </li>
-<li>**<code>moveBlocksToPending</code>**：<ul>
+<li><code>moveBlocksToPending</code>：<ul>
 <li>这个函数的主要任务是在特定的情况下，例如节点进入维护模式或者下线时，将相关块移动到“pending replication”状态的队列中，以等待后续的复制任务处理。</li>
 <li>当调用这个函数时，它会检查当前是否有节点处于维护模式或者下线，然后将相关块添加到等待复制的队列中。</li>
 </ul>
@@ -375,7 +375,7 @@
 
 <ol>
 <li>checkForCompletedNodes方法会遍历检查节点的状态，如果block的迁移任务完成了的话，就把node添加到toRemove的list中</li>
-<li>processCompletedNodes方法拿到toRemove的list，遍历检查然后设置状态，比如改为decommissioned，并从**<code>outOfServiceNodeBlocks</code>** 和 <strong><code>pendingRep</code></strong> 中移除</li>
+<li>processCompletedNodes方法拿到toRemove的list，遍历检查然后设置状态，比如改为decommissioned，并从 <strong><code>outOfServiceNodeBlocks</code></strong> 和 <strong><code>pendingRep</code></strong> 中移除</li>
 </ol>
 
                 
