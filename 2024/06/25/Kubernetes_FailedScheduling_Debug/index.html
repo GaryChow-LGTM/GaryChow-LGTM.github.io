@@ -16,15 +16,15 @@
   <meta name="author" content="Gary Chow (Yimin Cao)">
   <meta name="keywords" content="">
   
-    <meta name="description" content="正在使用Kubernetes进行Druid部署 12345678nodeSelector_new:  dedicated: druid-middlemanagertolerations:  - key: &quot;dedicated&quot;    operator: &quot;Equal&quot;    value: &quot;druid&quot;    effect: &quot;">
+    <meta name="description" content="Background正在使用Kubernetes进行Druid部署,发现更改sts的replica之后pod一直处于pending状态,接下来通过describe查看pod的部署状态,发现以下log 12345678nodeSelector_new:  dedicated: druid-middlemanagertolerations:  - key: &quot;dedicated&quot;">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Kubernetes FailedScheduling Debug">
 <meta property="og:url" content="http://example.com/2024/06/25/Kubernetes_FailedScheduling_Debug/index.html">
 <meta property="og:site_name" content="Hexo">
-<meta property="og:description" content="正在使用Kubernetes进行Druid部署 12345678nodeSelector_new:  dedicated: druid-middlemanagertolerations:  - key: &quot;dedicated&quot;    operator: &quot;Equal&quot;    value: &quot;druid&quot;    effect: &quot;">
+<meta property="og:description" content="Background正在使用Kubernetes进行Druid部署,发现更改sts的replica之后pod一直处于pending状态,接下来通过describe查看pod的部署状态,发现以下log 12345678nodeSelector_new:  dedicated: druid-middlemanagertolerations:  - key: &quot;dedicated&quot;">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2024-06-25T05:05:28.000Z">
-<meta property="article:modified_time" content="2024-06-25T05:14:38.875Z">
+<meta property="article:modified_time" content="2024-06-25T14:14:08.324Z">
 <meta property="article:author" content="Gary Chow (Yimin Cao)">
 <meta property="article:tag" content="Kubernetes">
 <meta property="article:tag" content="Debug">
@@ -222,7 +222,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          268 words
+          281 words
         
       </span>
     
@@ -275,23 +275,22 @@
             
               <div class="markdown-body">
                 
-                <p>正在使用Kubernetes进行Druid部署</p>
+                <h1 id="Background"><a href="#Background" class="headerlink" title="Background"></a>Background</h1><p>正在使用Kubernetes进行Druid部署,发现更改sts的replica之后pod一直处于pending状态,接下来通过describe查看pod的部署状态,发现以下log</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs bash">nodeSelector_new:<br>  dedicated: druid-middlemanager<br><br>tolerations:<br>  - key: <span class="hljs-string">&quot;dedicated&quot;</span><br>    operator: <span class="hljs-string">&quot;Equal&quot;</span><br>    value: <span class="hljs-string">&quot;druid&quot;</span><br>    effect: <span class="hljs-string">&quot;NoSchedule&quot;</span><br></code></pre></td></tr></table></figure>
 
-<p>发现更改sts的replica之后pod一直处于pending状态，接下来通过describe查看pod的部署状态，发现以下log</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs bash">Node-Selectors:              dedicated=druid-middlemanager<br>Tolerations:                 dedicated=druid:NoSchedule<br><br>Events:<br>  Type     Reason             Age                 From                Message<br>  ----     ------             ----                ----                -------<br>  Normal   NotTriggerScaleUp  117s                cluster-autoscaler  pod didn<span class="hljs-string">&#x27;t trigger scale-up: 1 node(s) had untolerated taint &#123;dedicated: ***&#125; .......</span><br><span class="hljs-string">  Warning  FailedScheduling   10s (x9 over 2m8s)  default-scheduler   0/84 nodes are available: 1 Insufficient memory, 1 node(s) had untolerated taint &#123;dedicated: ****&#125; ...</span><br></code></pre></td></tr></table></figure>
 
-<p>第一反应认为可能是以下问题</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs bash">Node-Selectors:              dedicated=druid-middlemanager<br>Tolerations:                 dedicated=druid:NoSchedule<br><br>Events:<br>  Type     Reason             Age                 From                Message<br>  ----     ------             ----                ----                -------<br>  Normal   NotTriggerScaleUp  117s                cluster-autoscaler  pod didn<span class="hljs-string">&#x27;t trigger scale-up: 1 node(s) had untolerated taint &#123;dedicated: ***&#125; .......</span><br><span class="hljs-string">  Warning  FailedScheduling   10s (x9 over 2m8s)  default-scheduler   0/84 nodes are available: 1 Insufficient memory, 1 node(s) had untolerated taint &#123;dedicated: ****&#125; ...</span><br></code></pre></td></tr></table></figure>
+<h1 id="Debug"><a href="#Debug" class="headerlink" title="Debug"></a>Debug</h1><p>第一反应认为可能是以下Bugs</p>
 <ol>
 <li>nodegroup资源的label错误</li>
 <li>sts资源的label错误</li>
 <li>nodegroup的auto scale失效</li>
 </ol>
-<p>但是检查过后以上三个都正常。</p>
+<p>通过检查sts 和 nodegroup的dedicated和tolerations发现并没有问题,排除了Bug 1和Bug 2,重点放在Bug 3。</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">K8s Labels: foc/bottlerocket=<span class="hljs-literal">true</span> dedicated=druid-middlemanager<br>K8s Taints: dedicated=druid:NoSchedule<br></code></pre></td></tr></table></figure>
 
-<p>检查了sts 和 nodegroup的dedicated和tolerations发现并没有问题，并且nodegroup内已经有了一台node。<br>如果资源不够的话会在node group的activities有尝试扩容的log，但是并没有，因此并不是扩容能解决的问题。</p>
-<p>结论：该nodegroup的机型内存较小，即便扩容也无法提供这么大内存的node供单个pod使用。这个logs很容易让人往资源label不匹配的方面或者auto scale失效的方面去想，很隐蔽的bug。</p>
+<p>目前nodegroup内已经有了一个node,如果资源不够的话会在node group的activities有尝试扩容的log,但是并没有,因此并不是扩容能解决的问题。<br>因此排除了Bug 3。</p>
+<h1 id="Conclusion"><a href="#Conclusion" class="headerlink" title="Conclusion"></a>Conclusion</h1><p>最终发现是nodegroup的机型内存较小,即便扩容也无法提供这么大内存的node供单个pod使用,因此会导致以上报错。<br>这个logs很容易让人往资源label不匹配的方面或者auto scale失效的方面去想,很隐蔽的bug。</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs bash">resources:<br>  limits:<br>    memory: 110Gi<br>  requests:<br>    memory: 110Gi<br></code></pre></td></tr></table></figure>
 
                 
