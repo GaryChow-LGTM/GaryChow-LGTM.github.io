@@ -84,7 +84,7 @@
   <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
   <div class="container">
     <a class="navbar-brand" href="/">
-      <strong>Gary Chow</strong>
+      <strong>Fluid</strong>
     </a>
 
     <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
@@ -186,7 +186,7 @@
       <div class="banner-text text-center fade-in-up">
         <div class="h2">
           
-            <span id="subtitle" data-typed-text="If you don't know now you know fellas"></span>
+            <span id="subtitle" data-typed-text="An elegant Material-Design theme for Hexo"></span>
           
         </div>
 
@@ -224,13 +224,57 @@
     <article class="col-12 col-md-12 mx-auto index-info">
       <h2 class="index-header">
         
-        <a href="/2024/06/17/HDFS/" target="_self">
-          HDFS decomission技术
+        <a href="/2024/06/25/Kubernetes_FailedScheduling_Debug/" target="_self">
+          Kubernetes FailedScheduling Debug
         </a>
       </h2>
 
       
-      <a class="index-excerpt index-excerpt__noimg" href="/2024/06/17/HDFS/" target="_self">
+      <a class="index-excerpt index-excerpt__noimg" href="/2024/06/25/Kubernetes_FailedScheduling_Debug/" target="_self">
+        <div>
+          正在使用Kubernetes进行Druid部署 12345678nodeSelector_new:  dedicated: druid-middlemanagertolerations:  - key: &quot;dedicated&quot;    operator: &quot;Equal&quot;    value: &quot;druid&quot;    effect: &quot;
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2024-06-25 13:05" pubdate>
+              2024-06-25
+            </time>
+          </div>
+        
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/Kubernetes/">#Kubernetes</a>
+            
+              <a href="/tags/Debug/">#Debug</a>
+            
+              <a href="/tags/Druid/">#Druid</a>
+            
+          </div>
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h2 class="index-header">
+        
+        <a href="/2024/06/17/HDFS_Decomission_Codes_and_Introduction/" target="_self">
+          HDFS Decomission Codes and Introduction
+        </a>
+      </h2>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/2024/06/17/HDFS_Decomission_Codes_and_Introduction/" target="_self">
         <div>
           HDFS decomission技术背景目前有200+ 1.22PB HDFS3和100- 480T HDFS的节点，退役节点的速度较慢，每小时只能迁移150k左右的blocks，平均一台节点有600k左右的blocks，一台需要4小时左右。 节点掉线和节点退役的区别？节点退役首先正常将节点加入退役名单，先告诉namenode和yarn不要在往上提交新任务和写入数据了；然后等待节点上的数据块在集群
         </div>
@@ -246,6 +290,17 @@
           </div>
         
         
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/Hadoop/">#Hadoop</a>
+            
+              <a href="/tags/CodeDive/">#CodeDive</a>
+            
+              <a href="/tags/Architecture/">#Architecture</a>
+            
+          </div>
         
       </div>
     </article>
