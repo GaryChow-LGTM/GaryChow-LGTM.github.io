@@ -16,15 +16,15 @@
   <meta name="author" content="Gary Chow (Yimin Cao)">
   <meta name="keywords" content="">
   
-    <meta name="description" content="理解 Kubernetes 的亲和性调度K8s的 POD 是自动调度选择某个 NODE 的，默认情况下调度器考虑的是资源足够，并且负载尽量平均，但是有的时候我们需要能够更加细粒度的去控制 POD 的调度，比如控制 POD 是否在同一 NODE 上。这就需要用到 Kubernetes 里面的一个概念：亲和性，亲和性主要分为两类：nodeAffinity和podAffinity。 nodeSelect">
+    <meta name="description" content="Kubernetes 的亲和性调度K8s的 POD 是自动调度选择某个 NODE 的，默认情况下调度器考虑的是资源足够，并且负载尽量平均，但是有的时候我们需要能够更加细粒度的去控制 POD 的调度，比如控制 POD 是否在同一 NODE 上。这就需要用到 Kubernetes 里面的一个概念：亲和性，亲和性主要分为两类：nodeAffinity和podAffinity。 nodeSelector用">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Kubernetes_nodeAffinityAndSelector">
 <meta property="og:url" content="http://example.com/2024/07/31/Kubernetes-nodeAffinityAndSelector/index.html">
 <meta property="og:site_name" content="QQ Zone">
-<meta property="og:description" content="理解 Kubernetes 的亲和性调度K8s的 POD 是自动调度选择某个 NODE 的，默认情况下调度器考虑的是资源足够，并且负载尽量平均，但是有的时候我们需要能够更加细粒度的去控制 POD 的调度，比如控制 POD 是否在同一 NODE 上。这就需要用到 Kubernetes 里面的一个概念：亲和性，亲和性主要分为两类：nodeAffinity和podAffinity。 nodeSelect">
+<meta property="og:description" content="Kubernetes 的亲和性调度K8s的 POD 是自动调度选择某个 NODE 的，默认情况下调度器考虑的是资源足够，并且负载尽量平均，但是有的时候我们需要能够更加细粒度的去控制 POD 的调度，比如控制 POD 是否在同一 NODE 上。这就需要用到 Kubernetes 里面的一个概念：亲和性，亲和性主要分为两类：nodeAffinity和podAffinity。 nodeSelector用">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2024-07-31T07:18:40.000Z">
-<meta property="article:modified_time" content="2024-07-31T07:26:09.692Z">
+<meta property="article:modified_time" content="2024-07-31T07:32:30.717Z">
 <meta property="article:author" content="Gary Chow (Yimin Cao)">
 <meta name="twitter:card" content="summary_large_image">
   
@@ -219,7 +219,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          2k words
+          2.1k words
         
       </span>
     
@@ -230,7 +230,7 @@
         
         
         
-          17 mins
+          18 mins
         
       </span>
     
@@ -272,7 +272,7 @@
             
               <div class="markdown-body">
                 
-                <h1 id="理解-Kubernetes-的亲和性调度"><a href="#理解-Kubernetes-的亲和性调度" class="headerlink" title="理解 Kubernetes 的亲和性调度"></a>理解 Kubernetes 的亲和性调度</h1><p>K8s的 POD 是自动调度选择某个 NODE 的，默认情况下调度器考虑的是资源足够，并且负载尽量平均，但是有的时候我们需要能够更加细粒度的去控制 POD 的调度，比如控制 POD 是否在同一 NODE 上。这就需要用到 Kubernetes 里面的一个概念：<strong>亲和性</strong>，亲和性主要分为两类：<code>nodeAffinity</code>和<code>podAffinity</code>。</p>
+                <h2 id="Kubernetes-的亲和性调度"><a href="#Kubernetes-的亲和性调度" class="headerlink" title="Kubernetes 的亲和性调度"></a>Kubernetes 的亲和性调度</h2><p>K8s的 POD 是自动调度选择某个 NODE 的，默认情况下调度器考虑的是资源足够，并且负载尽量平均，但是有的时候我们需要能够更加细粒度的去控制 POD 的调度，比如控制 POD 是否在同一 NODE 上。这就需要用到 Kubernetes 里面的一个概念：<strong>亲和性</strong>，亲和性主要分为两类：<code>nodeAffinity</code>和<code>podAffinity</code>。</p>
 <h2 id="nodeSelector"><a href="#nodeSelector" class="headerlink" title="nodeSelector"></a>nodeSelector</h2><p>用户可以非常灵活的利用 <code>label</code> 来管理集群中的资源，比如最常见的一个就是 service 通过匹配 <code>label</code> 去选择 POD 的。而 POD 的调度也可以根据节点的 label 进行特定的部署。</p>
 <p>我们可以通过下面的命令查看我们的 node 的 label：</p>
 <figure class="highlight accesslog"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs accesslog">$ kubectl get nodes --show-labels<br>NAME            STATUS    ROLES     AGE       VERSION   LABELS<br><span class="hljs-number">192.168.1.140</span>   Ready     &lt;none&gt;    42d       v1.<span class="hljs-number">8</span>.<span class="hljs-number">1</span>    beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/hostname=<span class="hljs-number">192</span>.<span class="hljs-number">168</span>.<span class="hljs-number">1</span>.<span class="hljs-number">140</span><br><span class="hljs-number">192.168.1.161</span>   Ready     &lt;none&gt;    118d      v1.<span class="hljs-number">8</span>.<span class="hljs-number">1</span>    beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/cluster-service=true,kubernetes.io/hostname=<span class="hljs-number">192</span>.<span class="hljs-number">168</span>.<span class="hljs-number">1</span>.<span class="hljs-number">161</span><br><span class="hljs-number">192.168.1.170</span>   Ready     &lt;none&gt;    118d      v1.<span class="hljs-number">8</span>.<span class="hljs-number">1</span>    beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/cluster-service=true,kubernetes.io/hostname=<span class="hljs-number">192</span>.<span class="hljs-number">168</span>.<span class="hljs-number">1</span>.<span class="hljs-number">170</span><br><span class="hljs-number">192.168.1.172</span>   Ready     &lt;none&gt;    114d      v1.<span class="hljs-number">8</span>.<span class="hljs-number">1</span>    beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/cluster-service=true,kubernetes.io/hostname=<span class="hljs-number">192</span>.<span class="hljs-number">168</span>.<span class="hljs-number">1</span>.<span class="hljs-number">172</span><br><br></code></pre></td></tr></table></figure>
@@ -367,10 +367,16 @@
 
 <p>effect 共有三个可选项，可按实际需求进行设置：</p>
 <ol>
-<li><code>NoSchedule</code>：POD 不会被调度到标记为 taints 节点。</li>
-<li><code>PreferNoSchedule</code>：NoSchedule 的软策略版本。</li>
+<li><code>NoSchedule</code>：除非具有匹配的容忍度规约，否则新的 Pod 不会被调度到带有污点的节点上。 当前正在节点上运行的 Pod 不会被驱逐。</li>
+<li><code>PreferNoSchedule</code>：PreferNoSchedule 是“偏好”或“软性”的 NoSchedule。 控制平面将尝试避免将不能容忍污点的 Pod 调度到的节点上，但不能保证完全避免。</li>
 <li><code>NoExecute</code>：该选项意味着一旦 Taint 生效，如该节点内正在运行的 POD 没有对应 Tolerate 设置，会直接被逐出。</li>
 </ol>
+<h2 id="Refer"><a href="#Refer" class="headerlink" title="Refer:"></a>Refer:</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/concepts/scheduling-eviction/taint-and-toleration/">https://kubernetes.io/zh-cn/docs/concepts/scheduling-eviction/taint-and-toleration/</a></li>
+<li><a target="_blank" rel="noopener" href="https://kubernetes.io/docs/concepts/configuration/assign-pod-node/">https://kubernetes.io/docs/concepts/configuration/assign-pod-node/</a></li>
+<li><a target="_blank" rel="noopener" href="https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/">https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/</a></li>
+<li><a target="_blank" rel="noopener" href="https://coreos.com/fleet/docs/latest/affinity.html">https://coreos.com/fleet/docs/latest/affinity.html</a></li>
+</ul>
 
                 
               </div>
