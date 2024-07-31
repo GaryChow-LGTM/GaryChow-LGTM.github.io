@@ -17,16 +17,16 @@
   <meta name="keywords" content="">
   
     <meta property="og:type" content="website">
-<meta property="og:title" content="Hexo">
+<meta property="og:title" content="QQ Zone">
 <meta property="og:url" content="http://example.com/index.html">
-<meta property="og:site_name" content="Hexo">
+<meta property="og:site_name" content="QQ Zone">
 <meta property="og:locale" content="en_US">
 <meta property="article:author" content="Gary Chow (Yimin Cao)">
 <meta name="twitter:card" content="summary_large_image">
   
   
   
-  <title>Hexo</title>
+  <title>QQ Zone</title>
 
   <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
 
@@ -224,6 +224,39 @@
     <article class="col-12 col-md-12 mx-auto index-info">
       <h2 class="index-header">
         
+        <a href="/2024/07/31/Kubernetes-Probes/" target="_self">
+          Kubernetes_Probes
+        </a>
+      </h2>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/2024/07/31/Kubernetes-Probes/" target="_self">
+        <div>
+          Probes Introduction 存活性探测 (Liveness probes): 主要是探测应用是否还活着。如果检测到应用没有存活就杀掉当前 pod 并重启; 就绪性探测 (Readiness probes): 只要是探测应用是否准备好接受请求访问，如果检测应用准备好了，就把请求流量放进来；反之，则把应用节点从注册中心拿掉。 启动探测 (Startup Probes): 对于旧应用需要更长
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2024-07-31 14:53" pubdate>
+              2024-07-31
+            </time>
+          </div>
+        
+        
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h2 class="index-header">
+        
         <a href="/2024/06/26/systemd-log-too-big/" target="_self">
           Systemd Journal Logs Too Big Debug
         </a>
@@ -318,7 +351,7 @@
       
       <a class="index-excerpt index-excerpt__noimg" href="/2024/06/17/HDFS_Decomission_Codes_and_Introduction/" target="_self">
         <div>
-          HDFS decomission技术背景目前有200+ 1.22PB HDFS3和100- 480T HDFS的节点，退役节点的速度较慢，每小时只能迁移150k左右的blocks，平均一台节点有600k左右的blocks，一台需要4小时左右。 节点掉线和节点退役的区别？节点退役首先正常将节点加入退役名单，先告诉namenode和yarn不要在往上提交新任务和写入数据了；然后等待节点上的数据块在集群
+          背景目前有200+ 1.22PB HDFS3和100- 480T HDFS的节点，退役节点的速度较慢，每小时只能迁移150k左右的blocks，平均一台节点有600k左右的blocks，一台需要4小时左右。 节点掉线和节点退役的区别？节点退役首先正常将节点加入退役名单，先告诉namenode和yarn不要在往上提交新任务和写入数据了；然后等待节点上的数据块在集群中复制完成；这个时候该退役的节点是优
         </div>
       </a>
 
