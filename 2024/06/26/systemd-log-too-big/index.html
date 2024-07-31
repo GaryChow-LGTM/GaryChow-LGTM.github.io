@@ -24,10 +24,10 @@
 <meta property="og:description" content="Background最近的机器磁盘容量经常报警,发现以下目录的磁盘占用较多 1sudo du -sh .&#x2F;* --exclude .&#x2F;proc | sort -rh  | head -n 5  &#x2F;run&#x2F;log&#x2F;journal 是 Systemd 的日志目录，用于存储 Systemd 日志文件。你可以使用 journalctl 工具来管理和清理这些日志文件。以下是清理 Systemd 日志的方法.">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2024-06-26T09:00:28.000Z">
-<meta property="article:modified_time" content="2024-06-26T09:56:33.376Z">
+<meta property="article:modified_time" content="2024-07-31T07:47:07.227Z">
 <meta property="article:author" content="Gary Chow (Yimin Cao)">
-<meta property="article:tag" content="Linux">
 <meta property="article:tag" content="Debug">
+<meta property="article:tag" content="Linux">
 <meta name="twitter:card" content="summary_large_image">
   
   
@@ -274,33 +274,33 @@
             
               <div class="markdown-body">
                 
-                <h1 id="Background"><a href="#Background" class="headerlink" title="Background"></a>Background</h1><p>最近的机器磁盘容量经常报警,发现以下目录的磁盘占用较多</p>
+                <h2 id="Background"><a href="#Background" class="headerlink" title="Background"></a>Background</h2><p>最近的机器磁盘容量经常报警,发现以下目录的磁盘占用较多</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">sudo <span class="hljs-built_in">du</span> -sh ./* --exclude ./proc | <span class="hljs-built_in">sort</span> -rh  | <span class="hljs-built_in">head</span> -n 5<br></code></pre></td></tr></table></figure>
 
 <p><strong><code>/run/log/journal</code></strong> 是 Systemd 的日志目录，用于存储 Systemd 日志文件。你可以使用 <strong><code>journalctl</code></strong> 工具来管理和清理这些日志文件。以下是清理 Systemd 日志的方法.</p>
-<h1 id="Solution"><a href="#Solution" class="headerlink" title="Solution"></a>Solution</h1><h2 id="1-列出日志条目："><a href="#1-列出日志条目：" class="headerlink" title="1. 列出日志条目："></a>1. 列出日志条目：</h2><p>若要查看可用的日志条目，可以使用以下命令：</p>
+<h2 id="Solution"><a href="#Solution" class="headerlink" title="Solution"></a>Solution</h2><h3 id="1-列出日志条目："><a href="#1-列出日志条目：" class="headerlink" title="1. 列出日志条目："></a>1. 列出日志条目：</h3><p>若要查看可用的日志条目，可以使用以下命令：</p>
 <pre><code class="hljs"><figure class="highlight ebnf"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs ebnf"><span class="hljs-attribute">journalctl</span><br></code></pre></td></tr></table></figure>
 
 这将显示当前可用的 Systemd 日志。
 </code></pre>
-<h2 id="2-设置日志保留策略："><a href="#2-设置日志保留策略：" class="headerlink" title="2. 设置日志保留策略："></a>2. 设置日志保留策略：</h2><p>Systemd 使用日志保留策略来管理日志文件的保留时间。你可以通过编辑 <strong><code>/etc/systemd/journald.conf</code></strong> 文件来配置日志保留策略。查找 <strong><code>SystemKeepFree</code><strong>、</strong><code>SystemMaxUse</code></strong> 和 <strong><code>RuntimeMaxUse</code></strong> 选项，然后根据需要进行设置。例如：</p>
+<h3 id="2-设置日志保留策略："><a href="#2-设置日志保留策略：" class="headerlink" title="2. 设置日志保留策略："></a>2. 设置日志保留策略：</h3><p>Systemd 使用日志保留策略来管理日志文件的保留时间。你可以通过编辑 <strong><code>/etc/systemd/journald.conf</code></strong> 文件来配置日志保留策略。查找 <strong><code>SystemKeepFree</code><strong>、</strong><code>SystemMaxUse</code></strong> 和 <strong><code>RuntimeMaxUse</code></strong> 选项，然后根据需要进行设置。例如：</p>
 <pre><code class="hljs"><figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs makefile"><br>SystemMaxUse=100M<br></code></pre></td></tr></table></figure>
 
 这将配置 Systemd 日志最大占用的磁盘空间为 100MB。你可以根据你的需求调整此值。
 </code></pre>
-<h2 id="3-清理日志："><a href="#3-清理日志：" class="headerlink" title="3. 清理日志："></a>3. 清理日志：</h2><p>一旦你设置了日志保留策略，你可以运行以下命令来清理日志：</p>
+<h3 id="3-清理日志："><a href="#3-清理日志：" class="headerlink" title="3. 清理日志："></a>3. 清理日志：</h3><p>一旦你设置了日志保留策略，你可以运行以下命令来清理日志：</p>
 <pre><code class="hljs"><figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs css">sudo journalctl <span class="hljs-attr">--vacuum-time</span>=<span class="hljs-number">1</span>h<br></code></pre></td></tr></table></figure>
 
 这将删除三天前的日志，保留最近三天的日志。
 
 你可以更改 **`--vacuum-time`** 标志的值来定义保留多长时间的日志。
 </code></pre>
-<h2 id="4-查看清理后的日志大小："><a href="#4-查看清理后的日志大小：" class="headerlink" title="4. 查看清理后的日志大小："></a>4. 查看清理后的日志大小：</h2><p>若要验证清理后的日志文件大小，可以再次运行以下命令：</p>
+<h3 id="4-查看清理后的日志大小："><a href="#4-查看清理后的日志大小：" class="headerlink" title="4. 查看清理后的日志大小："></a>4. 查看清理后的日志大小：</h3><p>若要验证清理后的日志文件大小，可以再次运行以下命令：</p>
 <pre><code class="hljs"><figure class="highlight ebnf"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs ebnf"><span class="hljs-attribute">journalctl</span><br></code></pre></td></tr></table></figure>
 
 这将显示当前可用的日志信息，包括已清理的部分。
 </code></pre>
-<h1 id="Tips"><a href="#Tips" class="headerlink" title="Tips"></a>Tips</h1><p>请注意，清理 Systemd 日志需要足够的权限。确保你有足够的权限来执行这些操作，或者使用 <strong><code>sudo</code></strong> 命令以管理员权限执行。清理日志文件可能会释放磁盘空间，但也可能会导致丢失一些旧日志信息，因此请根据你的需求和存储空间情况慎重选择清理策略。</p>
+<h2 id="Tips"><a href="#Tips" class="headerlink" title="Tips"></a>Tips</h2><p>请注意，清理 Systemd 日志需要足够的权限。确保你有足够的权限来执行这些操作，或者使用 <strong><code>sudo</code></strong> 命令以管理员权限执行。清理日志文件可能会释放磁盘空间，但也可能会导致丢失一些旧日志信息，因此请根据你的需求和存储空间情况慎重选择清理策略。</p>
 
                 
               </div>
@@ -313,9 +313,9 @@
     <div class="post-meta">
       <i class="iconfont icon-tags"></i>
       
-        <a href="/tags/Linux/" class="print-no-link">#Linux</a>
-      
         <a href="/tags/Debug/" class="print-no-link">#Debug</a>
+      
+        <a href="/tags/Linux/" class="print-no-link">#Linux</a>
       
     </div>
   

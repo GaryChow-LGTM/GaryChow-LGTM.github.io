@@ -265,7 +265,7 @@
       
       <a class="index-excerpt index-excerpt__noimg" href="/2024/07/31/Kubernetes-Probes/" target="_self">
         <div>
-          Probes Introduction 存活性探测 (Liveness probes): 主要是探测应用是否还活着。如果检测到应用没有存活就杀掉当前 pod 并重启; 就绪性探测 (Readiness probes): 只要是探测应用是否准备好接受请求访问，如果检测应用准备好了，就把请求流量放进来；反之，则把应用节点从注册中心拿掉。 启动探测 (Startup Probes): 对于旧应用需要更长
+          Probes Introduction 存活性探测 (Liveness probes): 存活性探针，用于判断容器是不是健康，如果不满足健康条件，那么 Kubelet 将根据 Pod 中设置的 restartPolicy （重启策略）来判断，Pod 是否要进行重启操作。  LivenessProbe 按照配置去探测 ( 进程、或者端口、或者命令执行后是否成功等等)，来判断容器是不是正常。如果探测不
         </div>
       </a>
 
@@ -316,9 +316,9 @@
           <div class="post-meta">
             <i class="iconfont icon-tags"></i>
             
-              <a href="/tags/Linux/">#Linux</a>
-            
               <a href="/tags/Debug/">#Debug</a>
+            
+              <a href="/tags/Linux/">#Linux</a>
             
           </div>
         
@@ -358,9 +358,9 @@
           <div class="post-meta">
             <i class="iconfont icon-tags"></i>
             
-              <a href="/tags/Debug/">#Debug</a>
-            
               <a href="/tags/Kubernetes/">#Kubernetes</a>
+            
+              <a href="/tags/Debug/">#Debug</a>
             
               <a href="/tags/Druid/">#Druid</a>
             

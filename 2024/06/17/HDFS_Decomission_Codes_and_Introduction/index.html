@@ -24,7 +24,7 @@
 <meta property="og:description" content="背景目前有200+ 1.22PB HDFS3和100- 480T HDFS的节点，退役节点的速度较慢，每小时只能迁移150k左右的blocks，平均一台节点有600k左右的blocks，一台需要4小时左右。 节点掉线和节点退役的区别？节点退役首先正常将节点加入退役名单，先告诉namenode和yarn不要在往上提交新任务和写入数据了；然后等待节点上的数据块在集群中复制完成；这个时候该退役的节点是优">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2024-06-17T07:52:23.000Z">
-<meta property="article:modified_time" content="2024-07-31T07:02:38.050Z">
+<meta property="article:modified_time" content="2024-07-31T07:48:56.407Z">
 <meta property="article:author" content="Gary Chow (Yimin Cao)">
 <meta property="article:tag" content="Hadoop">
 <meta property="article:tag" content="CodeDive">
@@ -275,15 +275,15 @@
             
               <div class="markdown-body">
                 
-                <h1 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h1><p>目前有200+ 1.22PB HDFS3和100- 480T HDFS的节点，退役节点的速度较慢，每小时只能迁移150k左右的blocks，平均一台节点有600k左右的blocks，一台需要4小时左右。</p>
-<h1 id="节点掉线和节点退役的区别？"><a href="#节点掉线和节点退役的区别？" class="headerlink" title="节点掉线和节点退役的区别？"></a><strong>节点掉线和节点退役的区别？</strong></h1><h2 id="节点退役"><a href="#节点退役" class="headerlink" title="节点退役"></a><strong>节点退役</strong></h2><p>首先正常将节点加入退役名单，先告诉namenode和yarn不要在往上提交新任务和写入数据了；然后等待节点上的数据块在集群中复制完成；<strong>这个时候该退役的节点是优先作为srcNode数据源的（优先选择退役中的节点作为复制数据源src，因为其无写入请求，负载低</strong>），其他节点从该退役节点复制数据块到其他节点的，所以这个时候该节点的负载会很高。所有数据块复制完毕，节点状态变成Decommissioned，可以从namenodeURL界面查看。<strong>注意数据节点退役数据开始复制的时间也是10分30s后，并不会因为是主动退役而提前开始，因为nannode和datanode永远都是维持着简单的主从关系，namenode节点不会主动向datanode节点发起任何IPC调用，datanode节点需要配合namenode完成的所有操作都是通过两者心跳应答时携带的DatanodeCommand返回的。</strong></p>
-<h2 id="节点掉线"><a href="#节点掉线" class="headerlink" title="节点掉线"></a>节点掉线</h2><p>比如强制停止datanode，物理机挂了（比如负载高掉线，突发网络故障，硬件故障等），这些都属于节点掉线，一般默认10分30s后（主要受两个参数控制）namenode会检测到该节点通信异常掉线。然后namenode根据该节点的ip，查出该节点所有的blockid，以及对应副本所在机器，通过心跳机制安排数据复制，这时候数据的复制，数据源不在是掉线节点，而是多个副本之一所在的节点，同样这时候副本复制也遵循机架感知，副本搁置策略。</p>
+                <h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>目前有200+ 1.22PB HDFS3和100- 480T HDFS的节点，退役节点的速度较慢，每小时只能迁移150k左右的blocks，平均一台节点有600k左右的blocks，一台需要4小时左右。</p>
+<h2 id="节点掉线和节点退役的区别？"><a href="#节点掉线和节点退役的区别？" class="headerlink" title="节点掉线和节点退役的区别？"></a><strong>节点掉线和节点退役的区别？</strong></h2><h3 id="节点退役"><a href="#节点退役" class="headerlink" title="节点退役"></a><strong>节点退役</strong></h3><p>首先正常将节点加入退役名单，先告诉namenode和yarn不要在往上提交新任务和写入数据了；然后等待节点上的数据块在集群中复制完成；<strong>这个时候该退役的节点是优先作为srcNode数据源的（优先选择退役中的节点作为复制数据源src，因为其无写入请求，负载低</strong>），其他节点从该退役节点复制数据块到其他节点的，所以这个时候该节点的负载会很高。所有数据块复制完毕，节点状态变成Decommissioned，可以从namenodeURL界面查看。<strong>注意数据节点退役数据开始复制的时间也是10分30s后，并不会因为是主动退役而提前开始，因为nannode和datanode永远都是维持着简单的主从关系，namenode节点不会主动向datanode节点发起任何IPC调用，datanode节点需要配合namenode完成的所有操作都是通过两者心跳应答时携带的DatanodeCommand返回的。</strong></p>
+<h3 id="节点掉线"><a href="#节点掉线" class="headerlink" title="节点掉线"></a>节点掉线</h3><p>比如强制停止datanode，物理机挂了（比如负载高掉线，突发网络故障，硬件故障等），这些都属于节点掉线，一般默认10分30s后（主要受两个参数控制）namenode会检测到该节点通信异常掉线。然后namenode根据该节点的ip，查出该节点所有的blockid，以及对应副本所在机器，通过心跳机制安排数据复制，这时候数据的复制，数据源不在是掉线节点，而是多个副本之一所在的节点，同样这时候副本复制也遵循机架感知，副本搁置策略。</p>
 <aside>
 💡 节点掉线和退役两者的区别不仅是数据的复制方式不同，还有就是namenode对Under-Replicated Blocks 的数据复制策略也是不一样的（数据块block复制的等级分成5种）；极端的例子比如单副本节点退役数据不会丢失，单副本节点掉线则会数据真的丢失；
 
 </aside>
 
-<h2 id="节点掉线导致的网络风暴"><a href="#节点掉线导致的网络风暴" class="headerlink" title="节点掉线导致的网络风暴"></a>节点掉线导致的网络风暴</h2><p>几十T,甚至上百T,上百万block的节点掉线，会出现大量的RPC风暴，尤其对于大规模高负载集群来说对namenode是很大的挑战，不仅影响生产性能，也会存在很大的隐患，尤其是对于带宽有限制瓶颈的集群。</p>
+<h3 id="节点掉线导致的网络风暴"><a href="#节点掉线导致的网络风暴" class="headerlink" title="节点掉线导致的网络风暴"></a>节点掉线导致的网络风暴</h3><p>几十T,甚至上百T,上百万block的节点掉线，会出现大量的RPC风暴，尤其对于大规模高负载集群来说对namenode是很大的挑战，不仅影响生产性能，也会存在很大的隐患，尤其是对于带宽有限制瓶颈的集群。</p>
 <p>一般来说namenode检测datanode是否掉线的值是10<em>3s（心跳时间）+2</em>5min（namenode检测时间，参数是：<code>dfs.namenode.heartbeat.recheck-interval</code>）&#x3D;10分30s。如果在10min30s内的时间内带宽持续打满，RPC请求延迟，datanode和namenode节点通信不畅，很容易造成其他节点的持续掉线，形成恶性循环，这种情况应该如何避免？</p>
 <p>NameNode 维护一个复制优先级队列，对于副本不足的文件 block 按优先级排序，仅剩下一个副本的文件 block 享有最高的复制优先级。所以从这里看集群两副本的话，只要有一个block出现异常，就只剩一个副本，就是最高优先级的块复制，会风暴模式复制，控制不好很容易影响集群性能，甚至搞挂集群。所以一般不建议集群副本因子是2。</p>
 <aside>
@@ -295,18 +295,18 @@
 <p>L5:已损坏的块，并且当前有可用的非损坏副本</p>
 </aside>
 
-<h2 id="参数控制节点掉线导致的RPC风暴"><a href="#参数控制节点掉线导致的RPC风暴" class="headerlink" title="参数控制节点掉线导致的RPC风暴"></a>参数控制节点掉线导致的RPC风暴</h2><p>三个参数都是<code>hdfs-site.xml</code>中参数，具体可以参考apache hadoop官网，其实块的复制速度有两个方面决定，一是namenode分发任务的速度，二则是datanode之间进行复制的速度。前者可以理解成入口，后者可以当成出口。</p>
+<h3 id="参数控制节点掉线导致的RPC风暴"><a href="#参数控制节点掉线导致的RPC风暴" class="headerlink" title="参数控制节点掉线导致的RPC风暴"></a>参数控制节点掉线导致的RPC风暴</h3><p>三个参数都是<code>hdfs-site.xml</code>中参数，具体可以参考apache hadoop官网，其实块的复制速度有两个方面决定，一是namenode分发任务的速度，二则是datanode之间进行复制的速度。前者可以理解成入口，后者可以当成出口。</p>
 <blockquote>
 <p>这些参数在hadoop2.7.3中并没有</p>
 </blockquote>
-<h3 id="入口参数"><a href="#入口参数" class="headerlink" title="入口参数"></a>入口参数</h3><p>从namenode层面控制任务分发，这个参数修改必须<strong>重启namenode</strong>，不需要重启datanode.</p>
+<h4 id="入口参数"><a href="#入口参数" class="headerlink" title="入口参数"></a>入口参数</h4><p>从namenode层面控制任务分发，这个参数修改必须<strong>重启namenode</strong>，不需要重启datanode.</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">dfs.namenode.replication.work.multiplier.per.iteration <br>这个参数apache hadoop默认值2，cdh集群默认值10<br></code></pre></td></tr></table></figure>
 
 <p>这个参数决定了当NN与DN进行心跳（3s）发送任务列表时，告诉每个DN可以进行复制的block数量。比如集群有500个节点，这个值设置为10，那么一次心跳namnode可以发送datanode复制的数据块数量是10*500&#x3D;5000块。</p>
 <p>假如一个节点掉线&#x2F;退役有800000块block需要复制，则namenode需要多长时间可以将待复制块的任务分发完给datanode呢。</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs bash">极限计算的结果：<br>任务分发时间=待复制block总数/(集群活跃dn*参数值)*心跳时间<br>time=800000/(500*10)=160次心跳*3s/每次心跳=480s=8分钟<br><br>所以节点越多，会分发任务越快,分发速度跟节点数和这个参数都成正比<br></code></pre></td></tr></table></figure>
 
-<h3 id="出口参数"><a href="#出口参数" class="headerlink" title="出口参数"></a>出口参数</h3><p>相比上面从nanode任务分发控制，下面两个使用datanode层面控制，这两个参数也需要<strong>重启namenode</strong></p>
+<h4 id="出口参数"><a href="#出口参数" class="headerlink" title="出口参数"></a>出口参数</h4><p>相比上面从nanode任务分发控制，下面两个使用datanode层面控制，这两个参数也需要<strong>重启namenode</strong></p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">dfs.namenode.replication.max-streams<br><br>apache hadoop默认值是2，cdh集群默认20。<br></code></pre></td></tr></table></figure>
 
 <p>这个参数含义是控制datanode节点进行数据复制的最大线程数，从上面我们知道block的复制优先级分成5种。这个参数控制不包含最高优先级的块复制。指除了最高优先级以外的复制流限制。</p>
@@ -319,15 +319,15 @@
 
 </aside>
 
-<h1 id="如何快速下线"><a href="#如何快速下线" class="headerlink" title="如何快速下线"></a>如何快速下线</h1><p>如何让节点快速下线的本质其实就是提高副本的复制速度。主要还是上面三个参数控制.第一是控制namenode任务分发，其次控制datanode复制速率，前提是不影响正常生产任务的进行。集群规模越小，下线的越慢，比如因为分发的总数会慢很多。</p>
+<h2 id="如何快速下线"><a href="#如何快速下线" class="headerlink" title="如何快速下线"></a>如何快速下线</h2><p>如何让节点快速下线的本质其实就是提高副本的复制速度。主要还是上面三个参数控制.第一是控制namenode任务分发，其次控制datanode复制速率，前提是不影响正常生产任务的进行。集群规模越小，下线的越慢，比如因为分发的总数会慢很多。</p>
 <p>比如一个500台的节点 <code>dfs.namenode.replication.work.multiplier.per.iteration=10</code>，一个50台的节点这个值要设置成100，两者namenode任务分发的速度才可以一致。具体结合实际集群规模设置。</p>
 <figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs json">&lt;property&gt;<br>    &lt;name&gt;dfs.namenode.replication.max-streams&lt;/name&gt;<br>    &lt;value&gt;<span class="hljs-number">10</span>&lt;/value&gt;<br>&lt;/property&gt;<br>&lt;property&gt;<br>    &lt;name&gt;dfs.namenode.replication.max-streams-hard-limit&lt;/name&gt;<br>    &lt;value&gt;<span class="hljs-number">20</span>&lt;/value&gt;<br>&lt;/property&gt;<br>&lt;property&gt;<br>    &lt;name&gt;dfs.namenode.replication.work.multiplier.per.iteration&lt;/name&gt;<br>    &lt;value&gt;<span class="hljs-number">5</span>&lt;/value&gt;<br>&lt;/property&gt;<br></code></pre></td></tr></table></figure>
 
 <p>在测试集群中，15台HDFS，平均每台80k blocks，每小时能迁移63k blocks，比最初的12k加速了5倍。</p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs json"># cdh 配置<br>dfs.namenode.replication.work.multiplier.per.iteration=<span class="hljs-number">4</span><br>dfs.namenode.replication.max-streams=<span class="hljs-number">20</span>   <br>dfs.namenode.replication.max-streams-hard-limit=<span class="hljs-number">40</span><br></code></pre></td></tr></table></figure>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs json">## cdh 配置<br>dfs.namenode.replication.work.multiplier.per.iteration=<span class="hljs-number">4</span><br>dfs.namenode.replication.max-streams=<span class="hljs-number">20</span>   <br>dfs.namenode.replication.max-streams-hard-limit=<span class="hljs-number">40</span><br></code></pre></td></tr></table></figure>
 
-<h3 id="影响"><a href="#影响" class="headerlink" title="影响"></a>影响</h3><p>会显著提高CPU Load, CPU IO Wait, Disk IO Wait等资源使用率</p>
-<h2 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h2><p>当<code>dfs.hosts.exclude</code>的地址写到conf之后，就可以refreshNodes拿到exclude list并进行操作</p>
+<h4 id="影响"><a href="#影响" class="headerlink" title="影响"></a>影响</h4><p>会显著提高CPU Load, CPU IO Wait, Disk IO Wait等资源使用率</p>
+<h3 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h3><p>当<code>dfs.hosts.exclude</code>的地址写到conf之后，就可以refreshNodes拿到exclude list并进行操作</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">/**</span><br><span class="hljs-comment"> * Rereads conf to get hosts and exclude list file names.</span><br><span class="hljs-comment"> * Rereads the files to update the hosts and exclude lists.  It</span><br><span class="hljs-comment"> * checks if any of the hosts have changed states:</span><br><span class="hljs-comment"> */</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">refreshNodes</span><span class="hljs-params">(<span class="hljs-keyword">final</span> Configuration conf)</span> <span class="hljs-keyword">throws</span> IOException &#123;<br>  refreshHostsReader(conf);<br>  namesystem.writeLock();<br>  <span class="hljs-keyword">try</span> &#123;<br>    refreshDatanodes();<br>    countSoftwareVersions();<br>  &#125; <span class="hljs-keyword">finally</span> &#123;<br>    namesystem.writeUnlock();<br>  &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
 
 <p>通过<code>dfs.exclude</code>读到node地址，然后标记为decommission，并使用monitor去tracking Node</p>
