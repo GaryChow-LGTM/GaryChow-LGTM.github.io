@@ -24,7 +24,7 @@
 <meta property="og:description" content="Probes Introduction 存活性探测 (Liveness probes): 主要是探测应用是否还活着。如果检测到应用没有存活就杀掉当前 pod 并重启; 就绪性探测 (Readiness probes): 只要是探测应用是否准备好接受请求访问，如果检测应用准备好了，就把请求流量放进来；反之，则把应用节点从注册中心拿掉。 启动探测 (Startup Probes): 对于旧应用需要更长">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2024-07-31T06:53:07.000Z">
-<meta property="article:modified_time" content="2024-07-31T07:05:33.626Z">
+<meta property="article:modified_time" content="2024-07-31T07:15:09.963Z">
 <meta property="article:author" content="Gary Chow (Yimin Cao)">
 <meta name="twitter:card" content="summary_large_image">
   
@@ -219,7 +219,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          287 words
+          285 words
         
       </span>
     
@@ -277,7 +277,17 @@
 <li>就绪性探测 (Readiness probes): 只要是探测应用是否准备好接受请求访问，如果检测应用准备好了，就把请求流量放进来；反之，则把应用节点从注册中心拿掉。</li>
 <li>启动探测 (Startup Probes): 对于旧应用需要更长的启动时间，这时候既不想重启应用也不想让请求访问进来，可以设置启动探测给足够的启动时间保证应用启动成功</li>
 </ul>
-<h1 id="Execution-order-of-Probes"><a href="#Execution-order-of-Probes" class="headerlink" title="Execution order of Probes"></a>Execution order of Probes</h1><p>可以自定义在 pod 启动时是否执行这些检测，如果不设置，则检测结果均默认为通过；如果设置，则顺序为： startupProbe –&gt; readinessProbe –&gt; livenessProbe<br>(★) 但是真的是上面的顺序嘛？ 官方文档上却说不是，其中有一段说到。<br>Caution: Liveness probes do not wait for readiness probes to succeed. If you want to wait before executing a liveness probe you should use initialDelaySeconds or a startupProbe.<br>翻译：livenessProbe 不会等待 readinessProbe 成功。如果你想在执行 livenessProbe 之前等待，你应该使用 initialDelaySeconds 或 startupProbe。<br>好了，真正的顺序是：startupProbe –&gt; readinessProbe(livenessProbe)<br>(★) readinessProbe 和 livenessProbe 之间是异步并发的</p>
+<h1 id="Execution-Order"><a href="#Execution-Order" class="headerlink" title="Execution Order"></a>Execution Order</h1><p>可以自定义在 pod 启动时是否执行这些检测，如果不设置，则检测结果均默认为通过；</p>
+<p>如果设置，则顺序为： <code>startupProbe --&gt; readinessProbe --&gt; livenessProbe</code></p>
+<p>但是真的是上面的顺序嘛？ 官方文档上却说不是，其中有一段说到。</p>
+<blockquote>
+<p>Caution: Liveness probes do not wait for readiness probes to succeed. If you want to wait before executing a liveness probe you should use initialDelaySeconds or a startupProbe.</p>
+</blockquote>
+<blockquote>
+<p>livenessProbe 不会等待 readinessProbe 成功。如果你想在执行 livenessProbe 之前等待，你应该使用 initialDelaySeconds 或 startupProbe。</p>
+</blockquote>
+<p>所以真正的顺序是：<code>startupProbe --&gt; readinessProbe(livenessProbe)</code></p>
+<p>readinessProbe 和 livenessProbe 之间是异步并发的。</p>
 
                 
               </div>
@@ -339,6 +349,12 @@
                 <div class="post-prevnext my-3">
                   <article class="post-prev col-6">
                     
+                    
+                      <a href="/2024/07/31/Kubernetes-nodeAffinityAndSelector/" title="Kubernetes_nodeAffinityAndSelector">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">Kubernetes_nodeAffinityAndSelector</span>
+                        <span class="visible-mobile">Previous</span>
+                      </a>
                     
                   </article>
                   <article class="post-next col-6">
