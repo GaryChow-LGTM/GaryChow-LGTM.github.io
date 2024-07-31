@@ -23,10 +23,12 @@
 <meta property="og:site_name" content="QQ Zone">
 <meta property="og:description" content="HistoryServer IntroductionHistoryServer is an HTTP service built into Spark, we can start it with the following code. When HistoryServer is started, it starts two threads to parse and clean the log fi">
 <meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://example.com/Spark-HistoryServer-Intorduction-and-Troubleshooting/img1.png">
 <meta property="article:published_time" content="2024-07-31T08:18:22.000Z">
-<meta property="article:modified_time" content="2024-07-31T08:21:28.412Z">
+<meta property="article:modified_time" content="2024-07-31T08:27:29.869Z">
 <meta property="article:author" content="Gary Chow (Yimin Cao)">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="http://example.com/Spark-HistoryServer-Intorduction-and-Troubleshooting/img1.png">
   
   
   
@@ -219,7 +221,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          332 words
+          369 words
         
       </span>
     
@@ -230,7 +232,7 @@
         
         
         
-          3 mins
+          4 mins
         
       </span>
     
@@ -279,6 +281,7 @@
 <p>The spark jobs themselves must be configured to log events, and to log them to the same shared, writable directory. For example, if the server was configured with a log directory of hdfs:&#x2F;&#x2F;namenode&#x2F;spark-logs, then the client-side options would be:</p>
 <figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs stylus">spark<span class="hljs-selector-class">.eventLog</span><span class="hljs-selector-class">.enabled</span> true<br>spark<span class="hljs-selector-class">.eventLog</span><span class="hljs-selector-class">.dir</span> hdfs:<span class="hljs-comment">//namenode/spark-logs</span><br></code></pre></td></tr></table></figure>
 
+<p><img src="/Spark-HistoryServer-Intorduction-and-Troubleshooting/img1.png" srcset="/img/loading.gif" lazyload alt="这是图片" title="img1"></p>
 <p>In order to better introduce HistoryServer, the flowchart of HS is listed here.</p>
 <p>Spark History is based on the Spark Event (Spark Event) system. During the Spark task, a large number of SparkListenerEvents containing running information are generated, such as ApplicationStart&#x2F;StageCompleted&#x2F;MetricsUpdate, etc. Each has a corresponding SparkListenerEvent implementation. All events are sent to the ListenerBus and listened to by all listeners registered in the ListenerBus. EventLoggingListener is a listener that generates event logs. It serializes the event into an event log file in Json format and writes it to a file system (such as HDFS). Usually the files of a machine room’s tasks are stored in a single path.</p>
 <p>On the History Server side, the core logic is in the FsHistoryProvider. The FsHistoryProvider maintains a thread that periodically scans the configured event log storage path, traverses the event log files in the path, extract the profile information (mainly Appliaction_id, user, status, start_time, end_time, event_log_path) and maintain a list. When the user accesses the UI, the task required by the request will be searched from the list, and if it exists, the corresponding Event log file will be read completely for parsing.</p>
@@ -300,6 +303,11 @@
 <p>So the log file record &lt;’ABC’, InfoData&lt;’ABC’&gt;&gt; will removed forever the when users access the WebUI for this application, and Application not found is shown up while the log for the app does exist.</p>
 <p>One thing to note the log file record &lt;’ABC’, InfoData&lt;’ABC’&gt;&gt; will not add in the KVstore Listing again, because in the next of checkForLogs, &lt;’tmp&#x2F;ABC’, infoData&lt;’tmp&#x2F;ABC’&gt;&gt; indicates that the log file of ABC does not need to reload, so the method will skip this log file.</p>
 <figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs stylus">val info = listing<span class="hljs-selector-class">.read</span>(classOf<span class="hljs-selector-attr">[LogInfo]</span>, reader<span class="hljs-selector-class">.rootPath</span><span class="hljs-selector-class">.toString</span>())<br> <br><span class="hljs-keyword">if</span> (<span class="hljs-built_in">shouldReloadLog</span>(info, reader)) &#123;<br>    ...<br>    &#125; <span class="hljs-keyword">else</span> &#123;<br>    false<br>    &#125;<br></code></pre></td></tr></table></figure>
+
+<h2 id="Solution"><a href="#Solution" class="headerlink" title="Solution"></a>Solution</h2><p>Due to multi-thread error common use of KVstore Listing, we make the cleanAppData method atomic, just like the addListing mothod, this allows threads to use KVstore Listing without data errors. </p>
+<p>For example:</p>
+<p>If Thread 1 gets the lock on the KVstore Listing before Thread 2, it will update the record of &lt;appId, InfoData<appId>&gt;, so Thread 2 can safely get the record and it will make isStale be false, so the cleanAppData method will not delete the record in KVstore Listing.<br>If Thread 2 gets the lock on the KVstore Listing before Thread 1, it will make isStale be true, and the cleanAppData method will delete the record in KVstore Listing. But it will be ok, beacuse Thread 1 will add the record of &lt;appId, InfoData<appId>&gt; in KVstore Listing again.<br>In all situations above, the record of KVstore Listing will not remove unexpectedly.</p>
+<p>This is the method used to fix the problem in Spark v3.2.2 (<a target="_blank" rel="noopener" href="https://github.com/apache/spark/pull/36424/files">https://github.com/apache/spark/pull/36424/files</a>).</p>
 
                 
               </div>
