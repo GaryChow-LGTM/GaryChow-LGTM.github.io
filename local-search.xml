@@ -4,7 +4,7 @@
   
   
   <entry>
-    <title>Kubernetes_nodeAffinityAndSelector</title>
+    <title>Kubernetes nodeAffinity &amp; nodeSelector Intros</title>
     <link href="/2024/07/31/Kubernetes-nodeAffinityAndSelector/"/>
     <url>/2024/07/31/Kubernetes-nodeAffinityAndSelector/</url>
     
@@ -23,7 +23,7 @@
   
   
   <entry>
-    <title>Kubernetes_Probes</title>
+    <title>Kubernetes Probes Intros</title>
     <link href="/2024/07/31/Kubernetes-Probes/"/>
     <url>/2024/07/31/Kubernetes-Probes/</url>
     
@@ -86,7 +86,7 @@
   
   
   <entry>
-    <title>HDFS Decomission Codes and Introduction</title>
+    <title>HDFS Decomission Codes and Intros</title>
     <link href="/2024/06/17/HDFS_Decomission_Codes_and_Introduction/"/>
     <url>/2024/06/17/HDFS_Decomission_Codes_and_Introduction/</url>
     
