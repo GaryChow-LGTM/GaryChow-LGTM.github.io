@@ -19,17 +19,17 @@
     <meta name="description" content="HistoryServer IntroductionHistoryServer is an HTTP service built into Spark, we can start it with the following code. When HistoryServer is started, it starts two threads to parse and clean the log fi">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Spark HistoryServer Intros and Troubleshooting">
-<meta property="og:url" content="http://example.com/2024/07/31/Spark-HistoryServer-Intorduction-and-Troubleshooting/Spark-HistoryServer-Intorduction-and-Troubleshooting/index.html">
+<meta property="og:url" content="http://example.com/2024/07/31/spark-history-debug/index.html">
 <meta property="og:site_name" content="QQ Zone">
 <meta property="og:description" content="HistoryServer IntroductionHistoryServer is an HTTP service built into Spark, we can start it with the following code. When HistoryServer is started, it starts two threads to parse and clean the log fi">
 <meta property="og:locale" content="en_US">
-<meta property="og:image" content="http://example.com/img1.png">
+<meta property="og:image" content="http://example.com/2024/07/31/spark-history-debug/img1.png">
 <meta property="article:published_time" content="2024-07-31T08:18:22.000Z">
-<meta property="article:modified_time" content="2024-07-31T08:55:58.231Z">
+<meta property="article:modified_time" content="2024-07-31T08:58:42.419Z">
 <meta property="article:author" content="Gary Chow (Yimin Cao)">
 <meta property="article:tag" content="Spark">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="http://example.com/img1.png">
+<meta name="twitter:image" content="http://example.com/2024/07/31/spark-history-debug/img1.png">
   
   
   
@@ -281,7 +281,7 @@
 <p>This creates a web interface at http:&#x2F;&#x2F;<server-url>:8080, listing incomplete and completed applications and attempts.</p>
 <p>The spark jobs themselves must be configured to log events, and to log them to the same shared, writable directory. For example, if the server was configured with a log directory of hdfs:&#x2F;&#x2F;namenode&#x2F;spark-logs, then the client-side options would be:</p>
 <figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs stylus">spark<span class="hljs-selector-class">.eventLog</span><span class="hljs-selector-class">.enabled</span> true<br>spark<span class="hljs-selector-class">.eventLog</span><span class="hljs-selector-class">.dir</span> hdfs:<span class="hljs-comment">//namenode/spark-logs</span><br></code></pre></td></tr></table></figure>
-<p><img src="/img1.png" srcset="/img/loading.gif" lazyload title="img1"></p>
+<p><img src="/2024/07/31/spark-history-debug/img1.png" srcset="/img/loading.gif" lazyload title="img1"></p>
 <p>In order to better introduce HistoryServer, the flowchart of HS is listed here.</p>
 <p>Spark History is based on the Spark Event (Spark Event) system. During the Spark task, a large number of SparkListenerEvents containing running information are generated, such as ApplicationStart&#x2F;StageCompleted&#x2F;MetricsUpdate, etc. Each has a corresponding SparkListenerEvent implementation. All events are sent to the ListenerBus and listened to by all listeners registered in the ListenerBus. EventLoggingListener is a listener that generates event logs. It serializes the event into an event log file in Json format and writes it to a file system (such as HDFS). Usually the files of a machine room’s tasks are stored in a single path.</p>
 <p>On the History Server side, the core logic is in the FsHistoryProvider. The FsHistoryProvider maintains a thread that periodically scans the configured event log storage path, traverses the event log files in the path, extract the profile information (mainly Appliaction_id, user, status, start_time, end_time, event_log_path) and maintain a list. When the user accesses the UI, the task required by the request will be searched from the list, and if it exists, the corresponding Event log file will be read completely for parsing.</p>
@@ -333,7 +333,7 @@
   <div class="license-box my-3">
     <div class="license-title">
       <div>Spark HistoryServer Intros and Troubleshooting</div>
-      <div>http://example.com/2024/07/31/Spark-HistoryServer-Intorduction-and-Troubleshooting/Spark-HistoryServer-Intorduction-and-Troubleshooting/</div>
+      <div>http://example.com/2024/07/31/spark-history-debug/</div>
     </div>
     <div class="license-meta">
       
@@ -377,18 +377,12 @@
                   <article class="post-prev col-6">
                     
                     
-                      <a href="/2024/07/31/spark-history-debug/" title="Spark HistoryServer Intros and Troubleshooting">
-                        <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">Spark HistoryServer Intros and Troubleshooting</span>
-                        <span class="visible-mobile">Previous</span>
-                      </a>
-                    
                   </article>
                   <article class="post-next col-6">
                     
                     
-                      <a href="/2024/07/31/Kubernetes-nodeAffinityAndSelector/" title="Kubernetes nodeAffinity &amp; nodeSelector Intros">
-                        <span class="hidden-mobile">Kubernetes nodeAffinity &amp; nodeSelector Intros</span>
+                      <a href="/2024/07/31/Spark-HistoryServer-Intorduction-and-Troubleshooting/Spark-HistoryServer-Intorduction-and-Troubleshooting/" title="Spark HistoryServer Intros and Troubleshooting">
+                        <span class="hidden-mobile">Spark HistoryServer Intros and Troubleshooting</span>
                         <span class="visible-mobile">Next</span>
                         <i class="iconfont icon-arrowright"></i>
                       </a>
