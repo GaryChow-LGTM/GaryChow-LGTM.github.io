@@ -12,6 +12,14 @@
     
     
     
+    <tags>
+      
+      <tag>Debug</tag>
+      
+      <tag>Druid</tag>
+      
+    </tags>
+    
   </entry>
   
   
@@ -107,11 +115,11 @@
     
     <tags>
       
-      <tag>Kubernetes</tag>
-      
       <tag>Debug</tag>
       
       <tag>Druid</tag>
+      
+      <tag>Kubernetes</tag>
       
     </tags>
     
