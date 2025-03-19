@@ -224,6 +224,39 @@
     <article class="col-12 col-md-12 mx-auto index-info">
       <h2 class="index-header">
         
+        <a href="/2025/03/19/Frame-Size-Configuration-and-RowTooLarge-Error-Resolution-in-Druid/" target="_self">
+          Frame-Size-Configuration-and-RowTooLarge-Error-Resolution-in-Druid
+        </a>
+      </h2>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/2025/03/19/Frame-Size-Configuration-and-RowTooLarge-Error-Resolution-in-Druid/" target="_self">
+        <div>
+          
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2025-03-19 16:28" pubdate>
+              2025-03-19
+            </time>
+          </div>
+        
+        
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h2 class="index-header">
+        
         <a href="/2024/07/31/spark-history-debug/" target="_self">
           Spark HistoryServer Intros and Troubleshooting
         </a>
@@ -266,13 +299,13 @@
     <article class="col-12 col-md-12 mx-auto index-info">
       <h2 class="index-header">
         
-        <a href="/2024/07/31/Kubernetes-nodeAffinityAndSelector/" target="_self">
+        <a href="/2024/07/31/Kubernetes-nodeAffinity-And-Selector/" target="_self">
           Kubernetes nodeAffinity &amp; nodeSelector Intros
         </a>
       </h2>
 
       
-      <a class="index-excerpt index-excerpt__noimg" href="/2024/07/31/Kubernetes-nodeAffinityAndSelector/" target="_self">
+      <a class="index-excerpt index-excerpt__noimg" href="/2024/07/31/Kubernetes-nodeAffinity-And-Selector/" target="_self">
         <div>
           Kubernetes 的亲和性调度K8s的 POD 是自动调度选择某个 NODE 的，默认情况下调度器考虑的是资源足够，并且负载尽量平均，但是有的时候我们需要能够更加细粒度的去控制 POD 的调度，比如控制 POD 是否在同一 NODE 上。这就需要用到 Kubernetes 里面的一个概念：亲和性，亲和性主要分为两类：nodeAffinity和podAffinity。 nodeSelector用
         </div>
@@ -388,13 +421,13 @@
     <article class="col-12 col-md-12 mx-auto index-info">
       <h2 class="index-header">
         
-        <a href="/2024/06/25/Kubernetes_FailedScheduling_Debug/" target="_self">
+        <a href="/2024/06/25/Kubernetes-FailedScheduling-Debug/" target="_self">
           Kubernetes FailedScheduling Debug
         </a>
       </h2>
 
       
-      <a class="index-excerpt index-excerpt__noimg" href="/2024/06/25/Kubernetes_FailedScheduling_Debug/" target="_self">
+      <a class="index-excerpt index-excerpt__noimg" href="/2024/06/25/Kubernetes-FailedScheduling-Debug/" target="_self">
         <div>
           Background正在使用Kubernetes进行Druid部署,发现更改sts的replica之后pod一直处于pending状态,接下来通过describe查看pod的部署状态,发现以下log 12345678nodeSelector_new:  dedicated: druid-middlemanagertolerations:  - key: &quot;dedicated&quot;
         </div>
@@ -432,13 +465,13 @@
     <article class="col-12 col-md-12 mx-auto index-info">
       <h2 class="index-header">
         
-        <a href="/2024/06/17/HDFS_Decomission_Codes_and_Introduction/" target="_self">
+        <a href="/2024/06/17/HDFS-Decomission-Codes-and-Introduction/" target="_self">
           HDFS Decomission Codes and Intros
         </a>
       </h2>
 
       
-      <a class="index-excerpt index-excerpt__noimg" href="/2024/06/17/HDFS_Decomission_Codes_and_Introduction/" target="_self">
+      <a class="index-excerpt index-excerpt__noimg" href="/2024/06/17/HDFS-Decomission-Codes-and-Introduction/" target="_self">
         <div>
           背景目前有200+ 1.22PB HDFS3和100- 480T HDFS的节点，退役节点的速度较慢，每小时只能迁移150k左右的blocks，平均一台节点有600k左右的blocks，一台需要4小时左右。 节点掉线和节点退役的区别？节点退役首先正常将节点加入退役名单，先告诉namenode和yarn不要在往上提交新任务和写入数据了；然后等待节点上的数据块在集群中复制完成；这个时候该退役的节点是优
         </div>

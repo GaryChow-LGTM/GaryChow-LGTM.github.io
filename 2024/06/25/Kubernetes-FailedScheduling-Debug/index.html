@@ -16,26 +16,24 @@
   <meta name="author" content="Gary Chow (Yimin Cao)">
   <meta name="keywords" content="">
   
-    <meta name="description" content="HistoryServer IntroductionHistoryServer is an HTTP service built into Spark, we can start it with the following code. When HistoryServer is started, it starts two threads to parse and clean the log fi">
+    <meta name="description" content="Background正在使用Kubernetes进行Druid部署,发现更改sts的replica之后pod一直处于pending状态,接下来通过describe查看pod的部署状态,发现以下log 12345678nodeSelector_new:  dedicated: druid-middlemanagertolerations:  - key: &quot;dedicated&quot;">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Spark HistoryServer Intros and Troubleshooting">
-<meta property="og:url" content="http://example.com/2024/07/31/spark-history-debug/index.html">
+<meta property="og:title" content="Kubernetes FailedScheduling Debug">
+<meta property="og:url" content="http://example.com/2024/06/25/Kubernetes-FailedScheduling-Debug/index.html">
 <meta property="og:site_name" content="QQ Zone">
-<meta property="og:description" content="HistoryServer IntroductionHistoryServer is an HTTP service built into Spark, we can start it with the following code. When HistoryServer is started, it starts two threads to parse and clean the log fi">
+<meta property="og:description" content="Background正在使用Kubernetes进行Druid部署,发现更改sts的replica之后pod一直处于pending状态,接下来通过describe查看pod的部署状态,发现以下log 12345678nodeSelector_new:  dedicated: druid-middlemanagertolerations:  - key: &quot;dedicated&quot;">
 <meta property="og:locale" content="en_US">
-<meta property="og:image" content="http://example.com/2024/07/31/spark-history-debug/img1.png">
-<meta property="og:image" content="http://example.com/2024/07/31/spark-history-debug/img2.png">
-<meta property="article:published_time" content="2024-07-31T08:18:22.000Z">
-<meta property="article:modified_time" content="2024-07-31T09:29:44.614Z">
+<meta property="article:published_time" content="2024-06-25T05:05:28.000Z">
+<meta property="article:modified_time" content="2024-07-31T07:48:04.725Z">
 <meta property="article:author" content="Gary Chow (Yimin Cao)">
+<meta property="article:tag" content="Kubernetes">
 <meta property="article:tag" content="Debug">
-<meta property="article:tag" content="Spark">
+<meta property="article:tag" content="Druid">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="http://example.com/2024/07/31/spark-history-debug/img1.png">
   
   
   
-  <title>Spark HistoryServer Intros and Troubleshooting - QQ Zone</title>
+  <title>Kubernetes FailedScheduling Debug - QQ Zone</title>
 
   <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
 
@@ -201,7 +199,7 @@
       <div class="banner-text text-center fade-in-up">
         <div class="h2">
           
-            <span id="subtitle" data-typed-text="Spark HistoryServer Intros and Troubleshooting"></span>
+            <span id="subtitle" data-typed-text="Kubernetes FailedScheduling Debug"></span>
           
         </div>
 
@@ -212,8 +210,8 @@
     
       <span class="post-meta">
         <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-        <time datetime="2024-07-31 16:18" pubdate>
-          July 31, 2024 pm
+        <time datetime="2024-06-25 13:05" pubdate>
+          June 25, 2024 pm
         </time>
       </span>
     
@@ -224,7 +222,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          386 words
+          281 words
         
       </span>
     
@@ -235,7 +233,7 @@
         
         
         
-          4 mins
+          3 mins
         
       </span>
     
@@ -272,55 +270,28 @@
       <div class="container nopadding-x-md" id="board-ctn">
         <div id="board">
           <article class="post-content mx-auto">
-            <h1 id="seo-header">Spark HistoryServer Intros and Troubleshooting</h1>
+            <h1 id="seo-header">Kubernetes FailedScheduling Debug</h1>
             
             
               <div class="markdown-body">
                 
-                <h2 id="HistoryServer-Introduction"><a href="#HistoryServer-Introduction" class="headerlink" title="HistoryServer Introduction"></a>HistoryServer Introduction</h2><p>HistoryServer is an HTTP service built into Spark, we can start it with the following code. When HistoryServer is started, it starts two threads to parse and clean the log files.</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">./sbin/start-history-server.sh<br></code></pre></td></tr></table></figure>
+                <h2 id="Background"><a href="#Background" class="headerlink" title="Background"></a>Background</h2><p>正在使用Kubernetes进行Druid部署,发现更改sts的replica之后pod一直处于pending状态,接下来通过describe查看pod的部署状态,发现以下log</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">nodeSelector_new:</span><br>  <span class="hljs-attr">dedicated:</span> <span class="hljs-string">druid-middlemanager</span><br><br><span class="hljs-attr">tolerations:</span><br>  <span class="hljs-bullet">-</span> <span class="hljs-attr">key:</span> <span class="hljs-string">&quot;dedicated&quot;</span><br>    <span class="hljs-attr">operator:</span> <span class="hljs-string">&quot;Equal&quot;</span><br>    <span class="hljs-attr">value:</span> <span class="hljs-string">&quot;druid&quot;</span><br>    <span class="hljs-attr">effect:</span> <span class="hljs-string">&quot;NoSchedule&quot;</span><br></code></pre></td></tr></table></figure>
 
-<p>This creates a web interface at <code>http://&lt;server-url&gt;:8080</code>, listing incomplete and completed applications and attempts.</p>
-<p>The spark jobs themselves must be configured to log events, and to log them to the same shared, writable directory. </p>
-<p>For example, if the server was configured with a log directory of <code>hdfs://namenode/spark-logs</code>, then the client-side options would be:</p>
-<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs stylus">spark<span class="hljs-selector-class">.eventLog</span><span class="hljs-selector-class">.enabled</span> true<br>spark<span class="hljs-selector-class">.eventLog</span><span class="hljs-selector-class">.dir</span> hdfs:<span class="hljs-comment">//namenode/spark-logs</span><br></code></pre></td></tr></table></figure>
 
-<p><img src="/2024/07/31/spark-history-debug/img1.png" srcset="/img/loading.gif" lazyload title="img1"></p>
-<p>To introduce the Spark History Server, the flowchart below outlines its workflow.</p>
-<p>The Spark History Server relies on the Spark Event system. During a Spark task, various SparkListenerEvents are generated, like ApplicationStart and StageCompleted. These events are sent to the ListenerBus, where they are monitored by registered listeners. The EventLoggingListener writes these events to a JSON log file on a file system like HDFS.</p>
-<p>The FsHistoryProvider in the History Server scans the log storage path periodically, extracts profile information (such as Application_id, user, status, start_time, end_time, event_log_path) from the log files, and maintains a list of this data. When a user accesses the UI, the system searches this list for the requested task and reads the corresponding event log file for details if it exists.</p>
-<h2 id="Issue"><a href="#Issue" class="headerlink" title="Issue"></a>Issue</h2><p>In some cases, after submitting a job using Spark, the log information corresponding to the appId cannot be found in the <strong>Spark HistoryServer WebUI (v3.2.1)</strong>. </p>
-<p>As a result, users cannot analyze the job log through the HistoryServer (HS). Upon analyzing the source code, it was found that the issue is due to the misuse of a data structure in a multithreading context.</p>
-<h2 id="Data-Structure"><a href="#Data-Structure" class="headerlink" title="Data Structure"></a>Data Structure</h2><p>Before explaining the problem, it’s important to understand the key data structure in HS. The misuse of this data structure causes the issue. HS uses a data structure called Listing to store key-value pairs, such as:</p>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs xml">&lt;appId, InfoData<span class="hljs-tag">&lt;<span class="hljs-name">appId</span>&gt;</span>&gt;<br>&lt;logPath, InfoData<span class="hljs-tag">&lt;<span class="hljs-name">logPath</span>&gt;</span>&gt;<br></code></pre></td></tr></table></figure>
-
-<h2 id="Log-Parsing-Process"><a href="#Log-Parsing-Process" class="headerlink" title="Log Parsing Process"></a>Log Parsing Process</h2><p>The HS runs the <code>checkForLogs</code> method every 10 seconds by default to build the application list based on the current contents of the log directory. During each execution, this method scans the specified logDir and parses the log files to update its KVStore listing. The process includes two main methods:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs bash">Node-Selectors:              dedicated=druid-middlemanager<br>Tolerations:                 dedicated=druid:NoSchedule<br><br>Events:<br>  Type     Reason             Age                 From                Message<br>  ----     ------             ----                ----                -------<br>  Normal   NotTriggerScaleUp  117s                cluster-autoscaler  pod didn<span class="hljs-string">&#x27;t trigger scale-up: 1 node(s) had untolerated taint &#123;dedicated: ***&#125; .......</span><br><span class="hljs-string">  Warning  FailedScheduling   10s (x9 over 2m8s)  default-scheduler   0/84 nodes are available: 1 Insufficient memory, 1 node(s) had untolerated taint &#123;dedicated: ****&#125; ...</span><br></code></pre></td></tr></table></figure>
+<h2 id="Debug"><a href="#Debug" class="headerlink" title="Debug"></a>Debug</h2><p>第一反应认为可能是以下Bugs</p>
 <ol>
-<li>update&#x2F;add log file records respectively</li>
-<li>remove stale log file records.</li>
+<li>nodegroup资源的label错误</li>
+<li>sts资源的label错误</li>
+<li>nodegroup的auto scale失效</li>
 </ol>
-<p>These methods are executed in different threads via <code>submitLogProcessTask</code>.</p>
-<h2 id="Issue-Scenario"><a href="#Issue-Scenario" class="headerlink" title="Issue Scenario"></a>Issue Scenario</h2><p>When <code>checkForLogs</code> is executed for the first time, the ABC job submitted by the user is still running. The file name in the log directory is <code>ABC.inprocess</code>, so the KVStore <code>Listing</code> adds two new entries:</p>
-<figure class="highlight 1c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs 1c">&lt;&#x27;ABC&#x27;, InfoData&lt;&#x27;ABC&#x27;&gt;&gt;<br>&lt;&#x27;/tmp/ABC.inprocess&#x27;, InfoData&lt;&#x27;/tmp/ABC.inprocess&#x27;&gt;&gt;<br></code></pre></td></tr></table></figure>
-<p>In the next run of <code>checkForLogs</code>, now the ABC application has finished, the log file <code>/tmp/ABC.inprocess</code> has been deleted, and the new log file path is <code>/tmp/ABC</code>, so in this run of <code>checkForLogs</code>, two threads will start and do following things:</p>
-<p><strong>Thread 1</strong>: update&#x2F;add log file records, this thread will parsing the log path <code>/tmp/ABC</code>. First it will update the<code> &lt;&#39;ABC&#39;, InfoData&lt;&#39;ABC&#39;&gt;&gt;</code> in the KVstore Listing, second it will add a new record <code>&lt;&#39;/tmp/ABC&#39;, InfoData&lt;&#39;/tmp/ABC&#39;&gt;&gt;</code> in KVstore Listing.</p>
-<p><strong>Thread 2</strong>: remove stale log file records, this thread will notice that the log path <code>/tmp/ABC.inprocess</code> has disappeared. First it will filter this path as a stale data, second it will start <code>cleanAppData</code> method, in this method the following code will be executed:</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-type">val</span> <span class="hljs-variable">app</span> <span class="hljs-operator">=</span> load(appId)<br></code></pre></td></tr></table></figure>
-<p>Usually, by the time this method loads the <code>appId</code>, Thread 1 has already updated <code>&lt;&#39;ABC&#39;, InfoData&lt;&#39;ABC&#39;&gt;&gt;</code> in the KVStore Listing. Therefore, when the following code executes, the value of <code>isStale</code> will be <code>false</code>.</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-type">val</span> <span class="hljs-variable">isStale</span> <span class="hljs-operator">=</span> attempt.headOption.exists &#123; a =&gt;<br>   <span class="hljs-keyword">if</span> (a.logPath != <span class="hljs-keyword">new</span> <span class="hljs-title class_">Path</span>(logPath).getName()) &#123;<br>     <span class="hljs-literal">false</span><br>   &#125; <span class="hljs-keyword">else</span> &#123;<br>     ...<br>     <span class="hljs-literal">true</span><br>   &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
-<p>However, in some cases, when this method loads the <code>appId</code>, Thread 1 has not finished the update. As a result, when the code above executes, the value of <code>isStale</code> will be <code>true</code>. The worst outcome is that it will delete the log file record <code>&lt;&#39;ABC&#39;, InfoData&lt;&#39;ABC&#39;&gt;&gt;</code> in the KVStore Listing after Thread 1 has completed the update.</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">if</span> (isStale) &#123;<br>   <span class="hljs-keyword">if</span> (others.nonEmpty) &#123;<br>     <span class="hljs-type">val</span> <span class="hljs-variable">newAppInfo</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">ApplicationInfoWrapper</span>(app.info, others)<br>     listing.write(newAppInfo)<br>   &#125; <span class="hljs-keyword">else</span> &#123;<br>     listing.delete(classOf[ApplicationInfoWrapper], appId)<br>   &#125;<br> &#125;<br>&#125; <span class="hljs-keyword">catch</span> &#123;<br>  <span class="hljs-keyword">case</span> _: NoSuchElementException =&gt;<br>&#125;<br></code></pre></td></tr></table></figure>
-<p>So, the log file record <code>&lt;&#39;ABC&#39;, InfoData&lt;&#39;ABC&#39;&gt;&gt;</code> will be permanently removed. When users access the WebUI for this application, they will see “Application not found” even though the log file for the app still exists.</p>
-<p>One thing to note is that the log file record <code>&lt;&#39;ABC&#39;, InfoData&lt;&#39;ABC&#39;&gt;&gt;</code> will not be added to the KVStore Listing again. In the next run of <code>checkForLogs</code>, the entry <code>&lt;&#39;/tmp/ABC&#39;, InfoData&lt;&#39;/tmp/ABC&#39;&gt;&gt;</code> indicates that the log file of ABC does not need to be reloaded, so the method will skip this log file.</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-type">val</span> <span class="hljs-variable">info</span> <span class="hljs-operator">=</span> listing.read(classOf[LogInfo], reader.rootPath.toString())<br> <br><span class="hljs-keyword">if</span> (shouldReloadLog(info, reader)) &#123;<br>    ...<br>    &#125; <span class="hljs-keyword">else</span> &#123;<br>    <span class="hljs-literal">false</span><br>    &#125;<br></code></pre></td></tr></table></figure>
-<p>To better show the process of bug occurrence, below is the flowchart</p>
-<p><img src="/2024/07/31/spark-history-debug/img2.png" srcset="/img/loading.gif" lazyload title="img2"></p>
-<h2 id="Solution"><a href="#Solution" class="headerlink" title="Solution"></a>Solution</h2><p>Due to multi-thread error common use of KVstore Listing, we make the <code>cleanAppData</code> method atomic, just like the addListing mothod, this allows threads to use KVstore Listing without data errors. </p>
-<p>For example:</p>
-<p>If Thread 1 gets the lock on the KVstore Listing before Thread 2, it will update the record of <code>&lt;appId, InfoData&lt;appId&gt;&gt;</code>, so Thread 2 can safely get the record and it will make isStale be <code>false</code>, so the <code>cleanAppData</code> method will not delete the record in KVstore Listing.</p>
-<p>If Thread 2 gets the lock on the KVstore Listing before Thread 1, it will make isStale be <code>true</code>, and the <code>cleanAppData</code> method will delete the record in KVstore Listing. But it will be ok, beacuse Thread 1 will add the record of <code>&lt;appId, InfoData&lt;appId&gt;&gt;</code> in KVstore Listing again.</p>
-<p>In all situations above, the record of KVstore Listing will not remove unexpectedly.</p>
-<p>This is the method used to fix the problem in Spark v3.2.2 (<a target="_blank" rel="noopener" href="https://github.com/apache/spark/pull/36424/files">https://github.com/apache/spark/pull/36424/files</a>).</p>
+<p>通过检查sts 和 nodegroup的dedicated和tolerations发现并没有问题,排除了Bug 1和Bug 2,重点放在Bug 3。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">K8s Labels: foc/bottlerocket=<span class="hljs-literal">true</span> dedicated=druid-middlemanager<br>K8s Taints: dedicated=druid:NoSchedule<br></code></pre></td></tr></table></figure>
+
+<p>目前nodegroup内已经有了一个node,如果资源不够的话会在node group的activities有尝试扩容的log,但是并没有,因此并不是扩容能解决的问题。<br>因此排除了Bug 3。</p>
+<h2 id="Conclusion"><a href="#Conclusion" class="headerlink" title="Conclusion"></a>Conclusion</h2><p>最终发现是nodegroup的机型内存较小,即便扩容也无法提供这么大内存的node供单个pod使用,因此会导致以上报错。<br>这个logs很容易让人往资源label不匹配的方面或者auto scale失效的方面去想,很隐蔽的bug。</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">resources:</span><br>  <span class="hljs-attr">limits:</span><br>    <span class="hljs-attr">memory:</span> <span class="hljs-string">110Gi</span><br>  <span class="hljs-attr">requests:</span><br>    <span class="hljs-attr">memory:</span> <span class="hljs-string">110Gi</span><br></code></pre></td></tr></table></figure>
 
                 
               </div>
@@ -333,9 +304,11 @@
     <div class="post-meta">
       <i class="iconfont icon-tags"></i>
       
+        <a href="/tags/Kubernetes/" class="print-no-link">#Kubernetes</a>
+      
         <a href="/tags/Debug/" class="print-no-link">#Debug</a>
       
-        <a href="/tags/Spark/" class="print-no-link">#Spark</a>
+        <a href="/tags/Druid/" class="print-no-link">#Druid</a>
       
     </div>
   
@@ -347,8 +320,8 @@
 
   <div class="license-box my-3">
     <div class="license-title">
-      <div>Spark HistoryServer Intros and Troubleshooting</div>
-      <div>http://example.com/2024/07/31/spark-history-debug/</div>
+      <div>Kubernetes FailedScheduling Debug</div>
+      <div>http://example.com/2024/06/25/Kubernetes-FailedScheduling-Debug/</div>
     </div>
     <div class="license-meta">
       
@@ -360,7 +333,7 @@
       
         <div class="license-meta-item license-meta-date">
           <div>Posted on</div>
-          <div>July 31, 2024</div>
+          <div>June 25, 2024</div>
         </div>
       
       
@@ -392,9 +365,9 @@
                   <article class="post-prev col-6">
                     
                     
-                      <a href="/2025/03/19/Frame-Size-Configuration-and-RowTooLarge-Error-Resolution-in-Druid/" title="Frame-Size-Configuration-and-RowTooLarge-Error-Resolution-in-Druid">
+                      <a href="/2024/06/26/systemd-log-too-big/" title="Systemd Journal Logs Too Big Debug">
                         <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">Frame-Size-Configuration-and-RowTooLarge-Error-Resolution-in-Druid</span>
+                        <span class="hidden-mobile">Systemd Journal Logs Too Big Debug</span>
                         <span class="visible-mobile">Previous</span>
                       </a>
                     
@@ -402,8 +375,8 @@
                   <article class="post-next col-6">
                     
                     
-                      <a href="/2024/07/31/Kubernetes-nodeAffinity-And-Selector/" title="Kubernetes nodeAffinity &amp; nodeSelector Intros">
-                        <span class="hidden-mobile">Kubernetes nodeAffinity &amp; nodeSelector Intros</span>
+                      <a href="/2024/06/17/HDFS-Decomission-Codes-and-Introduction/" title="HDFS Decomission Codes and Intros">
+                        <span class="hidden-mobile">HDFS Decomission Codes and Intros</span>
                         <span class="visible-mobile">Next</span>
                         <i class="iconfont icon-arrowright"></i>
                       </a>
