@@ -24,7 +24,7 @@
 <meta property="og:description" content="HDFS Decomission Codes and IntrosBackground of HDFS decomission Currently there are 200+ 1.22PB HDFS3 and 100- 480T HDFS nodes, the decommissioning nodes are slow and can only migrate about 150k block">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2024-06-17T07:52:23.000Z">
-<meta property="article:modified_time" content="2025-03-19T09:30:15.980Z">
+<meta property="article:modified_time" content="2025-03-19T09:32:52.016Z">
 <meta property="article:author" content="Gary Chow (Yimin Cao)">
 <meta property="article:tag" content="Hadoop">
 <meta property="article:tag" content="CodeDive">
@@ -283,7 +283,7 @@
 
 </aside>
 
-<h2 id="Network-storm-caused-by-node-drop"><a href="#Network-storm-caused-by-node-drop" class="headerlink" title="Network storm caused by node drop"></a>Network storm caused by node drop</h2><p> dozens of T, or even hundreds of T, millions of block node drop, there will be a large number of RPC storms, especially for large-scale high-load clusters on namenode is a big challenge, not only affects the performance of the production, but also there will be a great deal of hidden danger, especially for the bandwidth bottleneck of the limitations of clusters.</p>
+<h3 id="Network-storm-caused-by-node-drop"><a href="#Network-storm-caused-by-node-drop" class="headerlink" title="Network storm caused by node drop"></a>Network storm caused by node drop</h3><p> dozens of T, or even hundreds of T, millions of block node drop, there will be a large number of RPC storms, especially for large-scale high-load clusters on namenode is a big challenge, not only affects the performance of the production, but also there will be a great deal of hidden danger, especially for the bandwidth bottleneck of the limitations of clusters.</p>
 <p> Generally speaking the value of namenode to detect whether datanode is dropped is 10<em>3s (heartbeat time) + 2</em>5min (namenode detection time, the parameter is: <code>dfs.namenode.heartbeat.recheck-interval</code> ) &#x3D; 10min30s. if within 10min30s of time bandwidth continues to hit full, RPC requests are delayed, and datanode and namenode nodes are not communicating well, it is easy to cause other nodes to continue to fall offline, forming a vicious cycle, how should this situation be avoided?</p>
 <p> NameNode maintains a replication priority queue, for the file block with insufficient replicas, the file block with only one replica left will enjoy the highest replication priority. So if you look at a cluster with two replicas, as long as there is an exception in one block, there will be only one replica left, which is the highest-priority block replica, and it will be storm mode replication, which will easily affect the cluster performance if not well controlled, and even hang the cluster. Therefore, it is generally not recommended that the cluster copy factor is 2.</p>
 <aside>
@@ -295,7 +295,7 @@
 <p> L5:Damaged blocks and currently have available non-damaged replicas</p>
 </aside>
 
-<h2 id="Parameters-control-RPC-storms-caused-by-node-drops"><a href="#Parameters-control-RPC-storms-caused-by-node-drops" class="headerlink" title="Parameters control RPC storms caused by node drops"></a>Parameters control RPC storms caused by node drops</h2><p> The three parameters are <code>hdfs-site.xml</code> parameters, you can refer to the apache hadoop official website, in fact, there are two aspects of the block replication speed to determine, one is the speed of namenode distribution tasks, the second is the speed of replication between datanode. The former can be understood as the entrance and the latter can be treated as the exit.</p>
+<h3 id="Parameters-control-RPC-storms-caused-by-node-drops"><a href="#Parameters-control-RPC-storms-caused-by-node-drops" class="headerlink" title="Parameters control RPC storms caused by node drops"></a>Parameters control RPC storms caused by node drops</h3><p> The three parameters are <code>hdfs-site.xml</code> parameters, you can refer to the apache hadoop official website, in fact, there are two aspects of the block replication speed to determine, one is the speed of namenode distribution tasks, the second is the speed of replication between datanode. The former can be understood as the entrance and the latter can be treated as the exit.</p>
 <blockquote>
 <p>These parameters are not available in hadoop 2.7.3</p>
 </blockquote>
@@ -380,7 +380,7 @@
 <li>The processCompletedNodes method gets the toRemove list, traverses it and sets the status, for example to decommissioned, and removes it from <strong><code>outOfServiceNodeBlocks</code></strong> and <strong><code>pendingRep.</code></strong></li>
 </ol>
 <hr>
-<h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>目前有200+ 1.22PB HDFS3和100- 480T HDFS的节点，退役节点的速度较慢，每小时只能迁移150k左右的blocks，平均一台节点有600k左右的blocks，一台需要4小时左右。</p>
+<h1 id="HDFS-Decomission-代码解读与分析"><a href="#HDFS-Decomission-代码解读与分析" class="headerlink" title="HDFS Decomission 代码解读与分析"></a>HDFS Decomission 代码解读与分析</h1><h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>目前有200+ 1.22PB HDFS3和100- 480T HDFS的节点，退役节点的速度较慢，每小时只能迁移150k左右的blocks，平均一台节点有600k左右的blocks，一台需要4小时左右。</p>
 <h2 id="节点掉线和节点退役的区别？"><a href="#节点掉线和节点退役的区别？" class="headerlink" title="节点掉线和节点退役的区别？"></a><strong>节点掉线和节点退役的区别？</strong></h2><h3 id="节点退役"><a href="#节点退役" class="headerlink" title="节点退役"></a><strong>节点退役</strong></h3><p>首先正常将节点加入退役名单，先告诉namenode和yarn不要在往上提交新任务和写入数据了；然后等待节点上的数据块在集群中复制完成；<strong>这个时候该退役的节点是优先作为srcNode数据源的（优先选择退役中的节点作为复制数据源src，因为其无写入请求，负载低</strong>），其他节点从该退役节点复制数据块到其他节点的，所以这个时候该节点的负载会很高。所有数据块复制完毕，节点状态变成Decommissioned，可以从namenodeURL界面查看。<strong>注意数据节点退役数据开始复制的时间也是10分30s后，并不会因为是主动退役而提前开始，因为nannode和datanode永远都是维持着简单的主从关系，namenode节点不会主动向datanode节点发起任何IPC调用，datanode节点需要配合namenode完成的所有操作都是通过两者心跳应答时携带的DatanodeCommand返回的。</strong></p>
 <h3 id="节点掉线"><a href="#节点掉线" class="headerlink" title="节点掉线"></a>节点掉线</h3><p>比如强制停止datanode，物理机挂了（比如负载高掉线，突发网络故障，硬件故障等），这些都属于节点掉线，一般默认10分30s后（主要受两个参数控制）namenode会检测到该节点通信异常掉线。然后namenode根据该节点的ip，查出该节点所有的blockid，以及对应副本所在机器，通过心跳机制安排数据复制，这时候数据的复制，数据源不在是掉线节点，而是多个副本之一所在的节点，同样这时候副本复制也遵循机架感知，副本搁置策略。</p>
 <aside>
