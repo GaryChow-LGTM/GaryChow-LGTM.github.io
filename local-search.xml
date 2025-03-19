@@ -86,9 +86,9 @@
     
     <tags>
       
-      <tag>Linux</tag>
-      
       <tag>Debug</tag>
+      
+      <tag>Linux</tag>
       
     </tags>
     
@@ -107,9 +107,9 @@
     
     <tags>
       
-      <tag>Debug</tag>
-      
       <tag>Kubernetes</tag>
+      
+      <tag>Debug</tag>
       
       <tag>Druid</tag>
       
