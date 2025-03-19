@@ -16,21 +16,23 @@
   <meta name="author" content="Gary Chow (Yimin Cao)">
   <meta name="keywords" content="">
   
-    <meta name="description" content="ingress and route53 issues with druid aws deploymentsBackground.  When deploying Druid with Kubernetes on AWS, it is common to use AWS ALB (Application Load Balancer) for traffic routing and load bala">
+    <meta name="description" content="Ingress and Route53 Issues with Druid AWS DeploymentsBackground  When deploying Druid with Kubernetes on AWS, it is common to use AWS ALB (Application Load Balancer) for traffic routing and load balan">
 <meta property="og:type" content="article">
-<meta property="og:title" content="ingress-and-route53-issues-with-druid-aws-deployments">
+<meta property="og:title" content="Ingress and Route53 Issues with Druid AWS Deployments">
 <meta property="og:url" content="http://example.com/2025/03/19/ingress-and-route53-issues-with-druid-aws-deployments/index.html">
 <meta property="og:site_name" content="QQ Zone">
-<meta property="og:description" content="ingress and route53 issues with druid aws deploymentsBackground.  When deploying Druid with Kubernetes on AWS, it is common to use AWS ALB (Application Load Balancer) for traffic routing and load bala">
+<meta property="og:description" content="Ingress and Route53 Issues with Druid AWS DeploymentsBackground  When deploying Druid with Kubernetes on AWS, it is common to use AWS ALB (Application Load Balancer) for traffic routing and load balan">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2025-03-19T08:52:28.000Z">
-<meta property="article:modified_time" content="2025-03-19T08:53:26.469Z">
+<meta property="article:modified_time" content="2025-03-19T08:56:24.099Z">
 <meta property="article:author" content="Gary Chow (Yimin Cao)">
+<meta property="article:tag" content="Debug">
+<meta property="article:tag" content="Druid">
 <meta name="twitter:card" content="summary_large_image">
   
   
   
-  <title>ingress-and-route53-issues-with-druid-aws-deployments - QQ Zone</title>
+  <title>Ingress and Route53 Issues with Druid AWS Deployments - QQ Zone</title>
 
   <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
 
@@ -196,7 +198,7 @@
       <div class="banner-text text-center fade-in-up">
         <div class="h2">
           
-            <span id="subtitle" data-typed-text="ingress-and-route53-issues-with-druid-aws-deployments"></span>
+            <span id="subtitle" data-typed-text="Ingress and Route53 Issues with Druid AWS Deployments"></span>
           
         </div>
 
@@ -219,7 +221,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          791 words
+          786 words
         
       </span>
     
@@ -267,12 +269,12 @@
       <div class="container nopadding-x-md" id="board-ctn">
         <div id="board">
           <article class="post-content mx-auto">
-            <h1 id="seo-header">ingress-and-route53-issues-with-druid-aws-deployments</h1>
+            <h1 id="seo-header">Ingress and Route53 Issues with Druid AWS Deployments</h1>
             
             
               <div class="markdown-body">
                 
-                <h1 id="ingress-and-route53-issues-with-druid-aws-deployments"><a href="#ingress-and-route53-issues-with-druid-aws-deployments" class="headerlink" title="ingress and route53 issues with druid aws deployments"></a>ingress and route53 issues with druid aws deployments</h1><p><strong>Background.</strong></p>
+                <h1 id="Ingress-and-Route53-Issues-with-Druid-AWS-Deployments"><a href="#Ingress-and-Route53-Issues-with-Druid-AWS-Deployments" class="headerlink" title="Ingress and Route53 Issues with Druid AWS Deployments"></a>Ingress and Route53 Issues with Druid AWS Deployments</h1><p><strong>Background</strong></p>
 <p> When deploying Druid with Kubernetes on AWS, it is common to use AWS ALB (Application Load Balancer) for traffic routing and load balancing. By configuring Kubernetes’ Ingress resource, ALB can route traffic to different services. At the same time, Route 53 needs to be configured to handle DNS domain name resolution so that applications can be accessed via domain names.</p>
 <p> This configuration example shows how to set up the AWS ALB Ingress Controller to associate with the Kubernetes Ingress resource.</p>
 <p><strong>Debug</strong></p>
@@ -299,10 +301,10 @@
 <p><strong>Conclusion</strong></p>
 <p> With the ALB Ingress Controller and Route 53 properly configured, you can route traffic to services in Kubernetes and use AWS-provided certificates for HTTPS encryption. The key steps include obtaining the certificate ARN, querying the Ingress address, and updating the Route 53 configuration. Ensure that all resources and domains are configured correctly to access your application.</p>
 <hr>
-<h1 id="druid-aws部署的ingress和route53问题"><a href="#druid-aws部署的ingress和route53问题" class="headerlink" title="druid aws部署的ingress和route53问题"></a>druid aws部署的ingress和route53问题</h1><p><strong>背景（Background）</strong></p>
+<h1 id="Druid-AWS部署的ingress和route53问题"><a href="#Druid-AWS部署的ingress和route53问题" class="headerlink" title="Druid AWS部署的ingress和route53问题"></a>Druid AWS部署的ingress和route53问题</h1><p><strong>背景</strong></p>
 <p>在 AWS 上使用 Kubernetes 部署 Druid 时，通常会使用 AWS ALB（Application Load Balancer）来进行流量的路由和负载均衡。通过配置 Kubernetes 的 Ingress 资源，ALB 可以将流量路由到不同的服务。与此同时，还需要配置 Route 53 来处理 DNS 域名解析，以便通过域名访问应用。</p>
 <p>该配置示例展示了如何设置 AWS ALB Ingress Controller 与 Kubernetes Ingress 资源的关联。</p>
-<p><strong>调试（Debug）</strong></p>
+<p><strong>调试</strong></p>
 <ol>
 <li><p><strong>获取 ALB 证书 ARN</strong>：如果需要为 ALB 配置 SSL&#x2F;TLS 证书，可以通过 AWS ACM（AWS Certificate Manager）获得证书 ARN。<strong>需要向 SRE 团队请求该证书 ARN</strong>。这个证书用于 HTTPS 配置。以下是示例配置：</p>
  <figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">ingress:</span><br>  <span class="hljs-attr">name:</span> <span class="hljs-string">alb-ingress-route</span><br>  <span class="hljs-attr">domain:</span> <span class="hljs-string">druid-1.net</span><br>  <span class="hljs-attr">enabled:</span> <span class="hljs-literal">true</span><br><br><span class="hljs-attr">ingress2:</span><br>  <span class="hljs-attr">name:</span> <span class="hljs-string">alb-ingress2-route</span><br>  <span class="hljs-attr">domain:</span> <span class="hljs-string">druid-2.net</span><br>  <span class="hljs-attr">enabled:</span> <span class="hljs-literal">true</span><br><br><span class="hljs-attr">ingressClass:</span><br>  <span class="hljs-attr">enable:</span> <span class="hljs-literal">true</span><br>  <span class="hljs-attr">name:</span> <span class="hljs-string">alb</span><br>  <span class="hljs-attr">annotations:</span><br>    <span class="hljs-attr">alb.ingress.kubernetes.io/certificate-arn:</span> <span class="hljs-string">arn:aws:acm:xxx</span><br>    <span class="hljs-attr">alb.ingress.kubernetes.io/subnets:</span> <span class="hljs-string">sub-xxx</span><br>    <span class="hljs-attr">alb.ingress.kubernetes.io/group.name:</span> <span class="hljs-string">druid</span><br>    <span class="hljs-attr">alb.ingress.kubernetes.io/healthcheck-path:</span> <span class="hljs-string">/status/health</span><br>    <span class="hljs-attr">alb.ingress.kubernetes.io/healthcheck-port:</span> <span class="hljs-string">&quot;8888&quot;</span><br>    <span class="hljs-attr">alb.ingress.kubernetes.io/listen-ports:</span> <span class="hljs-string">&#x27;[&#123;&quot;HTTP&quot;: 80&#125;, &#123;&quot;HTTPS&quot;: 443&#125;]&#x27;</span><br>    <span class="hljs-attr">alb.ingress.kubernetes.io/manage-backend-security-group-rules:</span> <span class="hljs-string">&quot;true&quot;</span><br>    <span class="hljs-attr">alb.ingress.kubernetes.io/scheme:</span> <span class="hljs-string">internal</span><br>    <span class="hljs-attr">alb.ingress.kubernetes.io/success-codes:</span> <span class="hljs-string">&quot;200&quot;</span><br>    <span class="hljs-attr">alb.ingress.kubernetes.io/tags:</span> <span class="hljs-string">Owner=Gary</span><br>    <span class="hljs-attr">alb.ingress.kubernetes.io/target-type:</span> <span class="hljs-string">ip</span><br><br></code></pre></td></tr></table></figure>
@@ -323,7 +325,7 @@
 <li><p><strong>验证配置</strong>：完成 ALB 和 Route 53 配置后，您可以通过访问域名（如 <code>druid-1.net</code> 和 <code>druid-2.net</code>）验证 ALB 是否正常路由流量。</p>
 </li>
 </ol>
-<p><strong>结论（Conclusion）</strong></p>
+<p><strong>结论</strong></p>
 <p>通过正确配置 ALB Ingress Controller 和 Route 53，您可以将流量路由到 Kubernetes 中的服务，并且使用 AWS 提供的证书进行 HTTPS 加密。关键的步骤包括获取证书 ARN、查询 Ingress 地址以及更新 Route 53 配置。确保所有资源和域名配置正确，以便访问您的应用程序。</p>
 
                 
@@ -334,6 +336,15 @@
               <div class="post-metas my-3">
   
   
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/Debug/" class="print-no-link">#Debug</a>
+      
+        <a href="/tags/Druid/" class="print-no-link">#Druid</a>
+      
+    </div>
+  
 </div>
 
 
@@ -342,7 +353,7 @@
 
   <div class="license-box my-3">
     <div class="license-title">
-      <div>ingress-and-route53-issues-with-druid-aws-deployments</div>
+      <div>Ingress and Route53 Issues with Druid AWS Deployments</div>
       <div>http://example.com/2025/03/19/ingress-and-route53-issues-with-druid-aws-deployments/</div>
     </div>
     <div class="license-meta">
