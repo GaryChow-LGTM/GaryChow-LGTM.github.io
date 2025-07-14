@@ -19,7 +19,7 @@
     <meta name="description" content="源码分析 - Flink FileSystemTableSink 中自定义分区策略的创建与调用机制详解在使用 Flink 通过 Table API 或 SQL 写入文件系统时，若启用了自定义分区，系统如何注入并应用参数 sink.partition-commit.policy.kind 来控制分区提交行为？本文将从源码角度梳理这套机制的调用路径与实现细节。 本人实现的 [FLINK-32388]A">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Flink-FileSystemTableSink-Code-Intro">
-<meta property="og:url" content="http://example.com/2025/07/14/Flink-FileSystemTableSink-Code-Intro/index.html">
+<meta property="og:url" content="https://garychow-lgtm.github.io/2025/07/14/Flink-FileSystemTableSink-Code-Intro/index.html">
 <meta property="og:site_name" content="QQ Zone">
 <meta property="og:description" content="源码分析 - Flink FileSystemTableSink 中自定义分区策略的创建与调用机制详解在使用 Flink 通过 Table API 或 SQL 写入文件系统时，若启用了自定义分区，系统如何注入并应用参数 sink.partition-commit.policy.kind 来控制分区提交行为？本文将从源码角度梳理这套机制的调用路径与实现细节。 本人实现的 [FLINK-32388]A">
 <meta property="og:locale" content="en_US">
@@ -70,7 +70,7 @@
   <script id="fluid-configs">
     var Fluid = window.Fluid || {};
     Fluid.ctx = Object.assign({}, Fluid.ctx)
-    var CONFIG = {"hostname":"example.com","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+    var CONFIG = {"hostname":"garychow-lgtm.github.io","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
 
     if (CONFIG.web_analytics.follow_dnt) {
       var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
@@ -337,7 +337,7 @@
   <div class="license-box my-3">
     <div class="license-title">
       <div>Flink-FileSystemTableSink-Code-Intro</div>
-      <div>http://example.com/2025/07/14/Flink-FileSystemTableSink-Code-Intro/</div>
+      <div>https://garychow-lgtm.github.io/2025/07/14/Flink-FileSystemTableSink-Code-Intro/</div>
     </div>
     <div class="license-meta">
       

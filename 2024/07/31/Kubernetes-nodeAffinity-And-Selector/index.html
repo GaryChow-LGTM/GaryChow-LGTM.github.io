@@ -19,7 +19,7 @@
     <meta name="description" content="Kubernetes 的亲和性调度K8s的 POD 是自动调度选择某个 NODE 的，默认情况下调度器考虑的是资源足够，并且负载尽量平均，但是有的时候我们需要能够更加细粒度的去控制 POD 的调度，比如控制 POD 是否在同一 NODE 上。这就需要用到 Kubernetes 里面的一个概念：亲和性，亲和性主要分为两类：nodeAffinity和podAffinity。 nodeSelector用">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Kubernetes nodeAffinity &amp; nodeSelector Intros">
-<meta property="og:url" content="http://example.com/2024/07/31/Kubernetes-nodeAffinity-And-Selector/index.html">
+<meta property="og:url" content="https://garychow-lgtm.github.io/2024/07/31/Kubernetes-nodeAffinity-And-Selector/index.html">
 <meta property="og:site_name" content="QQ Zone">
 <meta property="og:description" content="Kubernetes 的亲和性调度K8s的 POD 是自动调度选择某个 NODE 的，默认情况下调度器考虑的是资源足够，并且负载尽量平均，但是有的时候我们需要能够更加细粒度的去控制 POD 的调度，比如控制 POD 是否在同一 NODE 上。这就需要用到 Kubernetes 里面的一个概念：亲和性，亲和性主要分为两类：nodeAffinity和podAffinity。 nodeSelector用">
 <meta property="og:locale" content="en_US">
@@ -69,7 +69,7 @@
   <script id="fluid-configs">
     var Fluid = window.Fluid || {};
     Fluid.ctx = Object.assign({}, Fluid.ctx)
-    var CONFIG = {"hostname":"example.com","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+    var CONFIG = {"hostname":"garychow-lgtm.github.io","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
 
     if (CONFIG.web_analytics.follow_dnt) {
       var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
@@ -403,7 +403,7 @@
   <div class="license-box my-3">
     <div class="license-title">
       <div>Kubernetes nodeAffinity &amp; nodeSelector Intros</div>
-      <div>http://example.com/2024/07/31/Kubernetes-nodeAffinity-And-Selector/</div>
+      <div>https://garychow-lgtm.github.io/2024/07/31/Kubernetes-nodeAffinity-And-Selector/</div>
     </div>
     <div class="license-meta">
       
