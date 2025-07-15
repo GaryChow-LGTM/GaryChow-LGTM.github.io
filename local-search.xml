@@ -4,7 +4,7 @@
   
   
   <entry>
-    <title>Flink-FileSystemTableSink-Code-Intro</title>
+    <title>源码分析 - Flink FileSystemTableSink 中自定义分区策略的创建与调用机制详解</title>
     <link href="/2025/07/14/Flink-FileSystemTableSink-Code-Intro/"/>
     <url>/2025/07/14/Flink-FileSystemTableSink-Code-Intro/</url>
     
