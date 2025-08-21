@@ -21,21 +21,21 @@
   
     <meta name="description" content="源码分析 - Flink FileSystemTableSink 中自定义分区策略的创建与调用机制详解在使用 Flink 通过 Table API 或 SQL 写入文件系统时，若启用了自定义分区，系统如何注入并应用参数 sink.partition-commit.policy.kind 来控制分区提交行为？本文将从源码角度梳理这套机制的调用路径与实现细节。 本人实现的 [FLINK-32388]A">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Flink-FileSystemTableSink-Code-Intro">
+<meta property="og:title" content="Flink FileSystemTableSink Code Intro">
 <meta property="og:url" content="https://garychow-lgtm.github.io/2025/07/14/Flink-FileSystemTableSink-Code-Intro/index.html">
 <meta property="og:site_name" content="QQ Zone">
 <meta property="og:description" content="源码分析 - Flink FileSystemTableSink 中自定义分区策略的创建与调用机制详解在使用 Flink 通过 Table API 或 SQL 写入文件系统时，若启用了自定义分区，系统如何注入并应用参数 sink.partition-commit.policy.kind 来控制分区提交行为？本文将从源码角度梳理这套机制的调用路径与实现细节。 本人实现的 [FLINK-32388]A">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2025-07-14T08:05:08.000Z">
-<meta property="article:modified_time" content="2025-08-21T12:56:48.874Z">
+<meta property="article:modified_time" content="2025-08-21T13:27:20.887Z">
 <meta property="article:author" content="Gary Chow (Yimin Cao)">
 <meta property="article:tag" content="CodeDive">
-<meta property="article:tag" content="Flink">
+<meta property="article:tag" content="Apache Flink">
 <meta name="twitter:card" content="summary_large_image">
   
   
   
-  <title>Flink-FileSystemTableSink-Code-Intro - QQ Zone</title>
+  <title>Flink FileSystemTableSink Code Intro - QQ Zone</title>
 
   <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
 
@@ -201,7 +201,7 @@
       <div class="banner-text text-center fade-in-up">
         <div class="h2">
           
-            <span id="subtitle" data-typed-text="Flink-FileSystemTableSink-Code-Intro"></span>
+            <span id="subtitle" data-typed-text="Flink FileSystemTableSink Code Intro"></span>
           
         </div>
 
@@ -272,7 +272,7 @@
       <div class="container nopadding-x-md" id="board-ctn">
         <div id="board">
           <article class="post-content mx-auto">
-            <h1 id="seo-header">Flink-FileSystemTableSink-Code-Intro</h1>
+            <h1 id="seo-header">Flink FileSystemTableSink Code Intro</h1>
             
             
               <div class="markdown-body">
@@ -327,7 +327,7 @@
       
         <a href="/tags/CodeDive/" class="print-no-link">#CodeDive</a>
       
-        <a href="/tags/Flink/" class="print-no-link">#Flink</a>
+        <a href="/tags/Apache-Flink/" class="print-no-link">#Apache Flink</a>
       
     </div>
   
@@ -339,7 +339,7 @@
 
   <div class="license-box my-3">
     <div class="license-title">
-      <div>Flink-FileSystemTableSink-Code-Intro</div>
+      <div>Flink FileSystemTableSink Code Intro</div>
       <div>https://garychow-lgtm.github.io/2025/07/14/Flink-FileSystemTableSink-Code-Intro/</div>
     </div>
     <div class="license-meta">
