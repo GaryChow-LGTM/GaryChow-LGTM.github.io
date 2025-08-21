@@ -1,0 +1,836 @@
+
+
+<!DOCTYPE html>
+<html lang="en" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/icons8-ninja-96.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Gary Chow (Yimin Cao)">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="HDFS Decomission Codes and IntrosBackground of HDFS decomission Currently there are 200+ 1.22PB HDFS3 and 100- 480T HDFS nodes, the decommissioning nodes are slow and can only migrate about 150k block">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HDFS Decomission Codes and Intros">
+<meta property="og:url" content="https://garychow-lgtm.github.io/2024/06/17/HDFS-Decomission-Codes-and-Introduction/index.html">
+<meta property="og:site_name" content="QQ Zone">
+<meta property="og:description" content="HDFS Decomission Codes and IntrosBackground of HDFS decomission Currently there are 200+ 1.22PB HDFS3 and 100- 480T HDFS nodes, the decommissioning nodes are slow and can only migrate about 150k block">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2024-06-17T07:52:23.000Z">
+<meta property="article:modified_time" content="2025-08-21T12:56:48.874Z">
+<meta property="article:author" content="Gary Chow (Yimin Cao)">
+<meta property="article:tag" content="CodeDive">
+<meta property="article:tag" content="Hadoop">
+<meta property="article:tag" content="Architecture">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>HDFS Decomission Codes and Intros - QQ Zone</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"garychow-lgtm.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.2.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>QQ Zone</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>Home</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>Archives</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>Categories</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>Tags</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>About</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="HDFS Decomission Codes and Intros"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2024-06-17 15:52" pubdate>
+          June 17, 2024 pm
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          4k words
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          34 mins
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">HDFS Decomission Codes and Intros</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h1 id="HDFS-Decomission-Codes-and-Intros"><a href="#HDFS-Decomission-Codes-and-Intros" class="headerlink" title="HDFS Decomission Codes and Intros"></a>HDFS Decomission Codes and Intros</h1><h2 id="Background-of-HDFS-decomission"><a href="#Background-of-HDFS-decomission" class="headerlink" title="Background of HDFS decomission"></a>Background of HDFS decomission</h2><p> Currently there are 200+ 1.22PB HDFS3 and 100- 480T HDFS nodes, the decommissioning nodes are slow and can only migrate about 150k blocks per hour, on average a node has about 600k blocks and one takes about 4 hours.</p>
+<h2 id="Difference-between-node-drop-and-node-retirement"><a href="#Difference-between-node-drop-and-node-retirement" class="headerlink" title="Difference between node drop and node retirement?"></a><strong>Difference between node drop and node retirement?</strong></h2><h3 id="Node-Decommissioning"><a href="#Node-Decommissioning" class="headerlink" title="Node Decommissioning"></a><strong>Node Decommissioning</strong></h3><p> First of all, normally add the node to the decommissioning list, first tell namenode and yarn not to submit new tasks and write data up; and then wait for the node on the data block in the cluster replication is complete; <strong>this time the decommissioned node is prioritized as the srcNode data source (preferred to choose the decommissioned node as a replicated data source src, because it has no write requests, low load</strong> ), the other nodes from the <strong>decommissioned</strong> node to <strong>replicate data source src</strong>. Other nodes copy data blocks from this retired node to other nodes, so the load on this node will be high at this time. All data blocks are replicated and the node status becomes Decommissioned, which can be viewed from the namenodeURL interface. <strong>Note that the data node decommissioned data to start replication time is also 10 minutes and 30s later, and will not start earlier because it is actively decommissioned, because the namenode and datanode will always maintain a simple master-slave relationship, the namenode node will not actively initiate any IPC calls to the datanode node, the datanode node needs to cooperate with the All operations completed by the namenode are returned through the DatanodeCommand carried by both heartbeat answers.</strong></p>
+<h3 id="Node-Drop"><a href="#Node-Drop" class="headerlink" title="Node Drop"></a>Node Drop</h3><p> For example, forced stop datanode, the physical machine hangs (such as high load drop, sudden network failure, hardware failure, etc.), these are node drop, the general default 10 minutes after 30s (mainly controlled by two parameters) namenode will detect the node communication anomaly drop. Then namenode according to the node’s ip, find out all the node’s blockid, as well as the corresponding copy of the machine, through the heartbeat mechanism to arrange for data replication, this time the data replication, the data source is not in the node is not down, but one of the multiple copies of the node, the same this time the copy replication also follow the rack-awareness, copy shelving strategy.</p>
+<aside>
+💡  The difference between node drop and decommissioning of the two is not only the data replication method is different, there is also namenode Under-Replicated Blocks of data replication strategy is not the same (data block block replication level is divided into five kinds); extreme examples such as single-copy node decommissioning data will not be lost, a single-copy node drop data will be really lost;
+
+</aside>
+
+<h3 id="Network-storm-caused-by-node-drop"><a href="#Network-storm-caused-by-node-drop" class="headerlink" title="Network storm caused by node drop"></a>Network storm caused by node drop</h3><p> dozens of T, or even hundreds of T, millions of block node drop, there will be a large number of RPC storms, especially for large-scale high-load clusters on namenode is a big challenge, not only affects the performance of the production, but also there will be a great deal of hidden danger, especially for the bandwidth bottleneck of the limitations of clusters.</p>
+<p> Generally speaking the value of namenode to detect whether datanode is dropped is 10<em>3s (heartbeat time) + 2</em>5min (namenode detection time, the parameter is: <code>dfs.namenode.heartbeat.recheck-interval</code> ) &#x3D; 10min30s. if within 10min30s of time bandwidth continues to hit full, RPC requests are delayed, and datanode and namenode nodes are not communicating well, it is easy to cause other nodes to continue to fall offline, forming a vicious cycle, how should this situation be avoided?</p>
+<p> NameNode maintains a replication priority queue, for the file block with insufficient replicas, the file block with only one replica left will enjoy the highest replication priority. So if you look at a cluster with two replicas, as long as there is an exception in one block, there will be only one replica left, which is the highest-priority block replica, and it will be storm mode replication, which will easily affect the cluster performance if not well controlled, and even hang the cluster. Therefore, it is generally not recommended that the cluster copy factor is 2.</p>
+<aside>
+💡  L1 (highest): there is a risk of data loss of the block, such as: 1. Only one copy of the block (especially for 2 copies of the block, down a node) or these blocks have 0 active copy; 2, single copy in the node is being decommissioned to own the block.
+
+<p> L2:Block replicas whose actual value is much lower than the configured value (e.g., 3 replicas, 2 missing), i.e., blocks whose replica count is less than 1&#x2F;3 of the expected value, and these blocks are replicated with second priority. For example, 4 copies of block, there are 3 lost or broken, it will be replicated with priority than 4 copies of block missing 2.</p>
+<p> L3:Insufficient copies are not as high as those with priority L2, which are replicated first. Third priority.</p>
+<p> L4:block meets the minimum number of copies required. The replica degree requirement is lower than both L2-L3.</p>
+<p> L5:Damaged blocks and currently have available non-damaged replicas</p>
+</aside>
+
+<h3 id="Parameters-control-RPC-storms-caused-by-node-drops"><a href="#Parameters-control-RPC-storms-caused-by-node-drops" class="headerlink" title="Parameters control RPC storms caused by node drops"></a>Parameters control RPC storms caused by node drops</h3><p> The three parameters are <code>hdfs-site.xml</code> parameters, you can refer to the apache hadoop official website, in fact, there are two aspects of the block replication speed to determine, one is the speed of namenode distribution tasks, the second is the speed of replication between datanode. The former can be understood as the entrance and the latter can be treated as the exit.</p>
+<blockquote>
+<p>These parameters are not available in hadoop 2.7.3</p>
+</blockquote>
+<h4 id="Ingress-Parameters"><a href="#Ingress-Parameters" class="headerlink" title="Ingress Parameters"></a>Ingress Parameters</h4><p> Controls the distribution of tasks from the namenode level. Changes to this parameter require <strong>a restart of the namenode</strong>, not the datanode.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">dfs.namenode.replication.work.multiplier.per.iteration <br>default=2<br></code></pre></td></tr></table></figure>
+
+<p> This parameter determines the number of blocks that each DN is told to replicate when the NN has a heartbeat (3s) with the DN to send the task list. For example, if the cluster has 500 nodes and this value is set to 10, then the number of data blocks that a heartbeat namnode can send datanode to replicate is 10*500&#x3D;5000 blocks.</p>
+<p> If a node drops&#x2F;retires and there are 800000 blocks to be replicated, how long does it take for the namenode to finish distributing the task of replicating the blocks to the datanode.</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-string">task</span> <span class="hljs-string">distribution</span> <span class="hljs-string">time</span> <span class="hljs-string">=</span> <br><span class="hljs-string">wait</span> <span class="hljs-string">for</span> <span class="hljs-string">copy</span> <span class="hljs-string">block</span> <span class="hljs-string">number</span> <span class="hljs-string">/</span> <span class="hljs-string">(datanode</span> <span class="hljs-string">number</span> <span class="hljs-string">*</span> <span class="hljs-string">parameters)</span> <span class="hljs-string">*</span> <span class="hljs-string">heartbeat</span> <span class="hljs-string">interval</span> <span class="hljs-string">time</span><br></code></pre></td></tr></table></figure>
+
+<h4 id="Export-Parameters"><a href="#Export-Parameters" class="headerlink" title="Export Parameters"></a>Export Parameters</h4><p> In contrast to the above, which controls task distribution from the nanode, the following two parameters are controlled at the datanode level, and require <strong>a restart of the namenode</strong>.</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-string">dfs.namenode.replication.max-streams</span><br><span class="hljs-string">default=2</span><br></code></pre></td></tr></table></figure>
+
+<p> The meaning of this parameter is to control the datanode node to carry out data replication of the maximum number of threads, from the above we know that the block replication priority is divided into five kinds. This parameter controls the replication of blocks that do not contain the highest priority. This parameter controls the replication of blocks that do not contain the highest priority.</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-string">dfs.namenode.replication.max-streams-hard-limit</span><br><span class="hljs-string">hadoop</span> <span class="hljs-string">default=2,</span> <span class="hljs-string">cdh</span> <span class="hljs-string">default=40</span><br></code></pre></td></tr></table></figure>
+
+<p> The meaning of this parameter is to control the number of streams copied by all priority blocks of the datanode, including the highest priority; generally used in conjunction with the above and above two parameters each other.</p>
+<aside>
+💡  The former parameter controls how often the datanode accepts tasks, and the latter two parameters further limit the maximum amount of parallel threaded network transfers that the DataNode can accomplish at one time. How much to set the value of the above parameters depends on the cluster size and cluster configuration, and cannot be determined in the same way. Generally speaking, it is simpler and easier to control from the entrance. For example, the scale of 500 clusters, dfs.namenode.replication.work.multiplier.per.iteration = 10, then the cluster heartbeat distribution of 5000 blocks at a time, if the cluster file storage is broken up in all 500 nodes, each node at the same time replicated 10 blocks (). The actual will be because of the replica shelving policy, rack awareness and so on will not be all the nodes are involved in data replication), each block size 128Mb, then each node's network load is 128 * 10/3 = 546Mb / s, then you have to look at the combination of the actual bandwidth bottlenecks, such a large network IO will affect the normal task of the computation, if so, the value of this If there is, the value should be adjusted down a bit.
+
+</aside>
+
+<h2 id="How-to-go-offline-quickly"><a href="#How-to-go-offline-quickly" class="headerlink" title="How to go offline quickly"></a>How to go offline quickly</h2><p> The essence of how to make nodes go offline quickly is to improve the replication speed of the replica. It is mainly controlled by the above three parameters. The first is to control namenode task distribution, and the second control datanode replication rate, provided that it does not affect the normal production tasks. The smaller the cluster size, the slower the downline, for example, because the total number of distribution will be much slower.</p>
+<p> For example, a 500-unit node <code>dfs.namenode.replication.work.multiplier.per.iteration=10</code>, a 50-unit node this value should be set to 100, both namenode task distribution speed can be consistent. Specifically combined with the actual cluster size settings.</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs json">&lt;property&gt;<br>    &lt;name&gt;dfs.namenode.replication.max-streams&lt;/name&gt;<br>    &lt;value&gt;<span class="hljs-number">10</span>&lt;/value&gt;<br>&lt;/property&gt;<br>&lt;property&gt;<br>    &lt;name&gt;dfs.namenode.replication.max-streams-hard-limit&lt;/name&gt;<br>    &lt;value&gt;<span class="hljs-number">20</span>&lt;/value&gt;<br>&lt;/property&gt;<br>&lt;property&gt;<br>    &lt;name&gt;dfs.namenode.replication.work.multiplier.per.iteration&lt;/name&gt;<br>    &lt;value&gt;<span class="hljs-number">5</span>&lt;/value&gt;<br>&lt;/property&gt;<br></code></pre></td></tr></table></figure>
+
+<p> In the test cluster, 15 HDFS, an average of 80k blocks per unit, can migrate 63k blocks per hour, than the initial 12k accelerated by 5 times.</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs json"># cdh 配置<br>dfs.namenode.replication.work.multiplier.per.iteration=<span class="hljs-number">4</span><br>dfs.namenode.replication.max-streams=<span class="hljs-number">20</span>   <br>dfs.namenode.replication.max-streams-hard-limit=<span class="hljs-number">40</span><br></code></pre></td></tr></table></figure>
+
+<h4 id="Impact"><a href="#Impact" class="headerlink" title="Impact"></a>Impact</h4><p> Significantly increase CPU Load, CPU IO Wait, Disk IO Wait and other resource utilization.</p>
+<h3 id="Source-Code-Analysis"><a href="#Source-Code-Analysis" class="headerlink" title="Source Code Analysis"></a>Source Code Analysis</h3><p> Once the address of <code>dfs.hosts.exclude</code> is written to conf, refreshNodes can get the exclude list and operate on it.</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">/**</span><br><span class="hljs-comment"> * Rereads conf to get hosts and exclude list file names.</span><br><span class="hljs-comment"> * Rereads the files to update the hosts and exclude lists.  It</span><br><span class="hljs-comment"> * checks if any of the hosts have changed states:</span><br><span class="hljs-comment"> */</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">refreshNodes</span><span class="hljs-params">(<span class="hljs-keyword">final</span> Configuration conf)</span> <span class="hljs-keyword">throws</span> IOException &#123;<br>  refreshHostsReader(conf);<br>  namesystem.writeLock();<br>  <span class="hljs-keyword">try</span> &#123;<br>    refreshDatanodes();<br>    countSoftwareVersions();<br>  &#125; <span class="hljs-keyword">finally</span> &#123;<br>    namesystem.writeUnlock();<br>  &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p> Read the address of the node through <code>dfs.exclude</code>, then mark it as decommissioned and use monitor to tracking Node.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs bash">public void startDecommission(DatanodeDescriptor node) &#123;<br>  <span class="hljs-keyword">if</span> (!node.isDecommissionInProgress() &amp;&amp; !node.isDecommissioned()) &#123;<br>    // Update DN stats maintained by HeartbeatManager<br>    hbManager.startDecommission(node);<br>    // hbManager.startDecommission will <span class="hljs-built_in">set</span> dead node to decommissioned.<br>    <span class="hljs-keyword">if</span> (node.isDecommissionInProgress()) &#123;<br>      <span class="hljs-keyword">for</span> (DatanodeStorageInfo storage : node.getStorageInfos()) &#123;<br>        LOG.info(<span class="hljs-string">&quot;Starting decommission of &#123;&#125; &#123;&#125; with &#123;&#125; blocks&quot;</span>,<br>            node, storage, storage.numBlocks());<br>      &#125;<br>      node.getLeavingServiceStatus().setStartTime(monotonicNow());<br>      monitor.startTrackingNode(node);<br>    &#125;<br>  &#125; <span class="hljs-keyword">else</span> &#123;<br>    LOG.trace(<span class="hljs-string">&quot;startDecommission: Node &#123;&#125; in &#123;&#125;, nothing to do.&quot;</span>,<br>        node, node.getAdminState());<br>  &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p> Before decommissioning, the cluster stats will be pre-decimated, such as <code>capacityUsed</code>, <code>capacityTotal</code>, and so on.</p>
+<p> monitor’s run() will call processPendingNodes() to take out nodes from the <code>pending nodes</code> and decommission them.</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">/**</span><br><span class="hljs-comment"> * Move any pending nodes into outOfServiceNodeBlocks to initiate the</span><br><span class="hljs-comment"> * decommission or maintenance mode process.</span><br><span class="hljs-comment"> *</span><br><span class="hljs-comment"> * This method must be executed under the namenode write lock to prevent</span><br><span class="hljs-comment"> * the pendingNodes list from being modified externally.</span><br><span class="hljs-comment"> */</span><br><span class="hljs-keyword">private</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">processPendingNodes</span><span class="hljs-params">()</span> &#123;<br>  <span class="hljs-keyword">while</span> (!pendingNodes.isEmpty() &amp;&amp;<br>      (maxConcurrentTrackedNodes == <span class="hljs-number">0</span> ||<br>          outOfServiceNodeBlocks.size() &lt; maxConcurrentTrackedNodes)) &#123;<br>    outOfServiceNodeBlocks.put(pendingNodes.poll(), <span class="hljs-literal">null</span>);<br>  &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p> After getting the nodes, it will call the check() method, which will get the block information of these nodes and process the PendingReplication Blocks.</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">private</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">check</span><span class="hljs-params">()</span> &#123;<br>  <span class="hljs-keyword">final</span> List&lt;DatanodeDescriptor&gt; toRemove = <span class="hljs-keyword">new</span> <span class="hljs-title class_">ArrayList</span>&lt;&gt;();<br><br>  <span class="hljs-keyword">if</span> (outOfServiceNodeBlocks.size() == <span class="hljs-number">0</span>) &#123;<br>    <span class="hljs-comment">// No nodes currently being tracked so simply return</span><br>    <span class="hljs-keyword">return</span>;<br>  &#125;<br><br>  <span class="hljs-comment">// Check if there are any pending nodes to process, ie those where the</span><br>  <span class="hljs-comment">// storage has not been scanned yet. For all which are pending, scan</span><br>  <span class="hljs-comment">// the storage and load the under-replicated block list into</span><br>  <span class="hljs-comment">// outOfServiceNodeBlocks. As this does not modify any external structures</span><br>  <span class="hljs-comment">// it can be done under the namenode *read* lock, and the lock can be</span><br>  <span class="hljs-comment">// dropped between each storage on each node.</span><br>  <span class="hljs-comment">//</span><br>  <span class="hljs-comment">// TODO - This is an expensive call, depending on how many nodes are</span><br>  <span class="hljs-comment">//        to be processed, but it requires only the read lock and it will</span><br>  <span class="hljs-comment">//        be dropped and re-taken frequently. We may want to throttle this</span><br>  <span class="hljs-comment">//        to process only a few nodes per iteration.</span><br>  outOfServiceNodeBlocks.keySet()<br>      .stream()<br>      .filter(n -&gt; outOfServiceNodeBlocks.get(n) == <span class="hljs-literal">null</span>)<br>      .forEach(n -&gt; scanDatanodeStorage(n, <span class="hljs-literal">true</span>));<br><br>  processMaintenanceNodes();<br>  <span class="hljs-comment">// First check the pending replication list and remove any blocks</span><br>  <span class="hljs-comment">// which are now replicated OK. This list is constrained in size so this</span><br>  <span class="hljs-comment">// call should not be overly expensive.</span><br>  processPendingReplication();<br><br>  <span class="hljs-comment">// Now move a limited number of blocks to pending</span><br>  moveBlocksToPending();<br><br>  <span class="hljs-comment">// Check if any nodes have reached zero blocks and also update the stats</span><br>  <span class="hljs-comment">// exposed via JMX for all nodes still being processed.</span><br>  checkForCompletedNodes(toRemove);<br><br>  <span class="hljs-comment">// Finally move the nodes to their final state if they are ready.</span><br>  processCompletedNodes(toRemove);<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<ol>
+<li>processPendingReplication() method will call isBlockReplicatedOk() method (the core) will determine whether the block needs reconstruction, and put the information into the <code>*replication queue*</code> in the <code>blockManager</code>.</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs java">blockManager.neededReconstruction.add(block,<br>    liveReplicas, num.readOnlyReplicas(),<br>    num.outOfServiceReplicas(),<br>    blockManager.getExpectedRedundancyNum(block));<br></code></pre></td></tr></table></figure>
+
+<ol start="2">
+<li>The moveBlocksToPending() method determines the length of the queue and the limit of the pending replication, and then creates a block iterator for each node that needs maintenance or delegation, and then each block will continue to call the above mentioned isBlockReplicatedOk() method until the block replication limit is reached, then stop and exit the loop.</li>
+</ol>
+<p> The moveBlocksToPending() method has an interesting piece of locking code.</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><code class="hljs java">Iterator&lt;DatanodeDescriptor&gt; nodeIter =<br>    Iterables.cycle(iterators.keySet()).iterator();<br><span class="hljs-keyword">while</span> (nodeIter.hasNext()) &#123;<br>  <span class="hljs-comment">// Cycle through each node with blocks which still need processed</span><br>  <span class="hljs-type">DatanodeDescriptor</span> <span class="hljs-variable">dn</span> <span class="hljs-operator">=</span> nodeIter.next();<br>  Iterator&lt;BlockInfo&gt; blockIt = iterators.get(dn);<br>  <span class="hljs-keyword">while</span> (blockIt.hasNext()) &#123;<br>    <span class="hljs-comment">// Process the blocks for the node until we find one that needs</span><br>    <span class="hljs-comment">// replication</span><br>    <span class="hljs-keyword">if</span> (blocksProcessed &gt;= blocksPerLock) &#123;<br>      blocksProcessed = <span class="hljs-number">0</span>;<br>      namesystem.writeUnlock();<br>      namesystem.writeLock();<br>    &#125;<br>    blocksProcessed++;<br>    <span class="hljs-keyword">if</span> (nextBlockAddedToPending(blockIt, dn)) &#123;<br>      <span class="hljs-comment">// Exit the inner &quot;block&quot; loop so an iterator for the next datanode</span><br>      <span class="hljs-comment">// is used for the next block.</span><br>      pendingCount++;<br>      <span class="hljs-keyword">break</span>;<br>    &#125;<br>  &#125;<br></code></pre></td></tr></table></figure>
+
+<p> It releases the write lock and then immediately requests a write lock because the <strong><code>blocksProcessed</code></strong> variable is used to keep track of the number of blocks that have been processed. When the number of blocks processed reaches a predetermined threshold of <strong><code>blocksPerLock</code></strong>, it gives other threads waiting for a write lock a chance to execute by releasing the current write lock and acquiring it again. This helps avoid blocking other threads by holding the lock for a long period of time, thus improving concurrency performance.</p>
+<aside>
+💡
+
+<p> Why does the check function call processPendingReplication and then moveBlocksToPending? Can’t it just call one?</p>
+<p> In some cases it is possible to call only one function to process the replication state of a block, but in some cases it may be necessary to call both functions. Let’s see why it is necessary to call both functions in some cases:</p>
+<ol>
+<li><strong><code>processPendingReplication</code></strong>:<ul>
+<li>The main task of this function is to process the blocks that are currently in the “pending replication” state and make sure that they are replicated to the required number of copies. It is usually called periodically by the scheduler to make sure that the blocks in the cluster maintain sufficient redundancy.</li>
+<li>When this function is called, it checks to see which blocks are currently in the pending state and attempts to start replication tasks to replicate those blocks.</li>
+</ul>
+</li>
+<li><strong><code>moveBlocksToPending</code></strong>:<ul>
+<li>The main task of this function is to move blocks to the “pending replication” queue under certain circumstances, e.g., when a node enters maintenance mode or goes offline, to wait for a subsequent replication task.</li>
+<li>When this function is called, it checks if any node is currently in maintenance mode or offline, and then adds the relevant block to the pending replication queue.</li>
+</ul>
+</li>
+</ol>
+<p> Why do we need to call both functions at the same time? Because they don’t deal with exactly the same issues:</p>
+<ul>
+<li><strong><code>processPendingReplication</code></strong> focuses on blocks that are currently pending, while <strong><code>moveBlocksToPending</code></strong> focuses on checking the blocks that need to be processed after a node’s state has changed.</li>
+<li>In some cases, new blocks may need to be replicated, or some blocks may need to be moved to the queue waiting to be replicated due to a node state change, so calling both functions simultaneously ensures that the processing of block replication status is comprehensive and timely.</li>
+</ul>
+</aside>
+
+<ol>
+<li>The checkForCompletedNodes method iterates through the state of the nodes and adds them to the toRemove list if the migration of the blocks is complete.</li>
+<li>The processCompletedNodes method gets the toRemove list, traverses it and sets the status, for example to decommissioned, and removes it from <strong><code>outOfServiceNodeBlocks</code></strong> and <strong><code>pendingRep.</code></strong></li>
+</ol>
+<hr>
+<h1 id="HDFS-Decomission-代码解读与分析"><a href="#HDFS-Decomission-代码解读与分析" class="headerlink" title="HDFS Decomission 代码解读与分析"></a>HDFS Decomission 代码解读与分析</h1><h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>目前有200+ 1.22PB HDFS3和100- 480T HDFS的节点，退役节点的速度较慢，每小时只能迁移150k左右的blocks，平均一台节点有600k左右的blocks，一台需要4小时左右。</p>
+<h2 id="节点掉线和节点退役的区别？"><a href="#节点掉线和节点退役的区别？" class="headerlink" title="节点掉线和节点退役的区别？"></a><strong>节点掉线和节点退役的区别？</strong></h2><h3 id="节点退役"><a href="#节点退役" class="headerlink" title="节点退役"></a><strong>节点退役</strong></h3><p>首先正常将节点加入退役名单，先告诉namenode和yarn不要在往上提交新任务和写入数据了；然后等待节点上的数据块在集群中复制完成；<strong>这个时候该退役的节点是优先作为srcNode数据源的（优先选择退役中的节点作为复制数据源src，因为其无写入请求，负载低</strong>），其他节点从该退役节点复制数据块到其他节点的，所以这个时候该节点的负载会很高。所有数据块复制完毕，节点状态变成Decommissioned，可以从namenodeURL界面查看。<strong>注意数据节点退役数据开始复制的时间也是10分30s后，并不会因为是主动退役而提前开始，因为nannode和datanode永远都是维持着简单的主从关系，namenode节点不会主动向datanode节点发起任何IPC调用，datanode节点需要配合namenode完成的所有操作都是通过两者心跳应答时携带的DatanodeCommand返回的。</strong></p>
+<h3 id="节点掉线"><a href="#节点掉线" class="headerlink" title="节点掉线"></a>节点掉线</h3><p>比如强制停止datanode，物理机挂了（比如负载高掉线，突发网络故障，硬件故障等），这些都属于节点掉线，一般默认10分30s后（主要受两个参数控制）namenode会检测到该节点通信异常掉线。然后namenode根据该节点的ip，查出该节点所有的blockid，以及对应副本所在机器，通过心跳机制安排数据复制，这时候数据的复制，数据源不在是掉线节点，而是多个副本之一所在的节点，同样这时候副本复制也遵循机架感知，副本搁置策略。</p>
+<aside>
+💡 节点掉线和退役两者的区别不仅是数据的复制方式不同，还有就是namenode对Under-Replicated Blocks 的数据复制策略也是不一样的（数据块block复制的等级分成5种）；极端的例子比如单副本节点退役数据不会丢失，单副本节点掉线则会数据真的丢失；
+
+</aside>
+
+<h3 id="节点掉线导致的网络风暴"><a href="#节点掉线导致的网络风暴" class="headerlink" title="节点掉线导致的网络风暴"></a>节点掉线导致的网络风暴</h3><p>几十T,甚至上百T,上百万block的节点掉线，会出现大量的RPC风暴，尤其对于大规模高负载集群来说对namenode是很大的挑战，不仅影响生产性能，也会存在很大的隐患，尤其是对于带宽有限制瓶颈的集群。</p>
+<p>一般来说namenode检测datanode是否掉线的值是10<em>3s（心跳时间）+2</em>5min（namenode检测时间，参数是：<code>dfs.namenode.heartbeat.recheck-interval</code>）&#x3D;10分30s。如果在10min30s内的时间内带宽持续打满，RPC请求延迟，datanode和namenode节点通信不畅，很容易造成其他节点的持续掉线，形成恶性循环，这种情况应该如何避免？</p>
+<p>NameNode 维护一个复制优先级队列，对于副本不足的文件 block 按优先级排序，仅剩下一个副本的文件 block 享有最高的复制优先级。所以从这里看集群两副本的话，只要有一个block出现异常，就只剩一个副本，就是最高优先级的块复制，会风暴模式复制，控制不好很容易影响集群性能，甚至搞挂集群。所以一般不建议集群副本因子是2。</p>
+<aside>
+💡 L1(最高)：有数据丢失风险的块，如：1.只有一个副本的块（尤其对于2副本的块，下线一台节点）或者这些块有0个active副本；2，单副本在正在退役的节点拥有的块。
+
+<p>L2:block副本实际值远低于配置的值（比如3副本，缺失2个），即副本数不到期望值1&#x2F;3时的块，这些block会被第二优先级复制。比如4副本的block,有3个丢失或者坏了,它就会比4副本block丢失2个的优先复制。</p>
+<p>L3:副本不足没有优先级L2高的那些副本，优先复制。第三优先级。</p>
+<p>L4:block满足要求的最小副本数。副本度需求度比L2-L3都低。</p>
+<p>L5:已损坏的块，并且当前有可用的非损坏副本</p>
+</aside>
+
+<h3 id="参数控制节点掉线导致的RPC风暴"><a href="#参数控制节点掉线导致的RPC风暴" class="headerlink" title="参数控制节点掉线导致的RPC风暴"></a>参数控制节点掉线导致的RPC风暴</h3><p>三个参数都是<code>hdfs-site.xml</code>中参数，具体可以参考apache hadoop官网，其实块的复制速度有两个方面决定，一是namenode分发任务的速度，二则是datanode之间进行复制的速度。前者可以理解成入口，后者可以当成出口。</p>
+<blockquote>
+<p>这些参数在hadoop2.7.3中并没有</p>
+</blockquote>
+<h4 id="入口参数"><a href="#入口参数" class="headerlink" title="入口参数"></a>入口参数</h4><p>从namenode层面控制任务分发，这个参数修改必须<strong>重启namenode</strong>，不需要重启datanode.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">dfs.namenode.replication.work.multiplier.per.iteration <br>这个参数apache hadoop默认值2，cdh集群默认值10<br></code></pre></td></tr></table></figure>
+
+<p>这个参数决定了当NN与DN进行心跳（3s）发送任务列表时，告诉每个DN可以进行复制的block数量。比如集群有500个节点，这个值设置为10，那么一次心跳namnode可以发送datanode复制的数据块数量是10*500&#x3D;5000块。</p>
+<p>假如一个节点掉线&#x2F;退役有800000块block需要复制，则namenode需要多长时间可以将待复制块的任务分发完给datanode呢。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs bash">极限计算的结果：<br>任务分发时间=待复制block总数/(集群活跃dn*参数值)*心跳时间<br>time=800000/(500*10)=160次心跳*3s/每次心跳=480s=8分钟<br><br>所以节点越多，会分发任务越快,分发速度跟节点数和这个参数都成正比<br></code></pre></td></tr></table></figure>
+
+<h4 id="出口参数"><a href="#出口参数" class="headerlink" title="出口参数"></a>出口参数</h4><p>相比上面从nanode任务分发控制，下面两个使用datanode层面控制，这两个参数也需要<strong>重启namenode</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">dfs.namenode.replication.max-streams<br><br>apache hadoop默认值是2，cdh集群默认20。<br></code></pre></td></tr></table></figure>
+
+<p>这个参数含义是控制datanode节点进行数据复制的最大线程数，从上面我们知道block的复制优先级分成5种。这个参数控制不包含最高优先级的块复制。指除了最高优先级以外的复制流限制。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">dfs.namenode.replication.max-streams-hard-limit<br><br>这个值apache hadoop默认值2，cdh集群默认值40<br></code></pre></td></tr></table></figure>
+
+<p>这个参数含义是控制datanode所有优先级块复制的流个数，包含最高优先级；一般上面和上面两个参数互相的配合使用。</p>
+<aside>
+💡 前者参数控制datanode接受任务的频率，后者这两个参数进一步限制 DataNode 一次完成的最大并行线程网络传输量。具体上面参数的值设定的多少，取决于集群的规模和集群的配置，不能同一而论。
+一般来说从入口控制比较简单容易些。比如规模500台集群，dfs.namenode.replication.work.multiplier.per.iteration=10，那么集群一次心跳分发5000个block的量，假如集群文件存储全部打散在500台节点，每个节点同时复制10个block（实际会因为副本搁置策略，机架感知等并不会所有的节点都参与数据复制）,每个block大小128Mb,则每个节点的网络负载是128*10/3=546Mb/s，那这时候你就要看下结合实际会不会有带宽瓶颈，这么大的网络IO会不会影响正常任务的计算，如果有的话，这个值就要调小点。
+
+</aside>
+
+<h2 id="如何快速下线"><a href="#如何快速下线" class="headerlink" title="如何快速下线"></a>如何快速下线</h2><p>如何让节点快速下线的本质其实就是提高副本的复制速度。主要还是上面三个参数控制.第一是控制namenode任务分发，其次控制datanode复制速率，前提是不影响正常生产任务的进行。集群规模越小，下线的越慢，比如因为分发的总数会慢很多。</p>
+<p>比如一个500台的节点 <code>dfs.namenode.replication.work.multiplier.per.iteration=10</code>，一个50台的节点这个值要设置成100，两者namenode任务分发的速度才可以一致。具体结合实际集群规模设置。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs json">&lt;property&gt;<br>    &lt;name&gt;dfs.namenode.replication.max-streams&lt;/name&gt;<br>    &lt;value&gt;<span class="hljs-number">10</span>&lt;/value&gt;<br>&lt;/property&gt;<br>&lt;property&gt;<br>    &lt;name&gt;dfs.namenode.replication.max-streams-hard-limit&lt;/name&gt;<br>    &lt;value&gt;<span class="hljs-number">20</span>&lt;/value&gt;<br>&lt;/property&gt;<br>&lt;property&gt;<br>    &lt;name&gt;dfs.namenode.replication.work.multiplier.per.iteration&lt;/name&gt;<br>    &lt;value&gt;<span class="hljs-number">5</span>&lt;/value&gt;<br>&lt;/property&gt;<br></code></pre></td></tr></table></figure>
+
+<p>在测试集群中，15台HDFS，平均每台80k blocks，每小时能迁移63k blocks，比最初的12k加速了5倍。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs json">## cdh 配置<br>dfs.namenode.replication.work.multiplier.per.iteration=<span class="hljs-number">4</span><br>dfs.namenode.replication.max-streams=<span class="hljs-number">20</span>   <br>dfs.namenode.replication.max-streams-hard-limit=<span class="hljs-number">40</span><br></code></pre></td></tr></table></figure>
+
+<h4 id="影响"><a href="#影响" class="headerlink" title="影响"></a>影响</h4><p>会显著提高CPU Load, CPU IO Wait, Disk IO Wait等资源使用率</p>
+<h3 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h3><p>当<code>dfs.hosts.exclude</code>的地址写到conf之后，就可以refreshNodes拿到exclude list并进行操作</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">/**</span><br><span class="hljs-comment"> * Rereads conf to get hosts and exclude list file names.</span><br><span class="hljs-comment"> * Rereads the files to update the hosts and exclude lists.  It</span><br><span class="hljs-comment"> * checks if any of the hosts have changed states:</span><br><span class="hljs-comment"> */</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">refreshNodes</span><span class="hljs-params">(<span class="hljs-keyword">final</span> Configuration conf)</span> <span class="hljs-keyword">throws</span> IOException &#123;<br>  refreshHostsReader(conf);<br>  namesystem.writeLock();<br>  <span class="hljs-keyword">try</span> &#123;<br>    refreshDatanodes();<br>    countSoftwareVersions();<br>  &#125; <span class="hljs-keyword">finally</span> &#123;<br>    namesystem.writeUnlock();<br>  &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>通过<code>dfs.exclude</code>读到node地址，然后标记为decommission，并使用monitor去tracking Node</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><code class="hljs bash">public void startDecommission(DatanodeDescriptor node) &#123;<br>  <span class="hljs-keyword">if</span> (!node.isDecommissionInProgress() &amp;&amp; !node.isDecommissioned()) &#123;<br>    // Update DN stats maintained by HeartbeatManager<br>    hbManager.startDecommission(node);<br>    // hbManager.startDecommission will <span class="hljs-built_in">set</span> dead node to decommissioned.<br>    <span class="hljs-keyword">if</span> (node.isDecommissionInProgress()) &#123;<br>      <span class="hljs-keyword">for</span> (DatanodeStorageInfo storage : node.getStorageInfos()) &#123;<br>        LOG.info(<span class="hljs-string">&quot;Starting decommission of &#123;&#125; &#123;&#125; with &#123;&#125; blocks&quot;</span>,<br>            node, storage, storage.numBlocks());<br>      &#125;<br>      node.getLeavingServiceStatus().setStartTime(monotonicNow());<br>		// 开始监控这个node，并把node加入pendingNodes里面<br>      monitor.startTrackingNode(node);<br>    &#125;<br>  &#125; <span class="hljs-keyword">else</span> &#123;<br>    LOG.trace(<span class="hljs-string">&quot;startDecommission: Node &#123;&#125; in &#123;&#125;, nothing to do.&quot;</span>,<br>        node, node.getAdminState());<br>  &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>在decommission之前会先把集群的stats进行预减，比如<code>capacityUsed</code>和<br><code>capacityTotal</code> 等等</p>
+<p>monitor的run()中会调用processPendingNodes()，从<code>pendingNodes</code>中拿出节点并进行decommission</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">/**</span><br><span class="hljs-comment"> * Move any pending nodes into outOfServiceNodeBlocks to initiate the</span><br><span class="hljs-comment"> * decommission or maintenance mode process.</span><br><span class="hljs-comment"> *</span><br><span class="hljs-comment"> * This method must be executed under the namenode write lock to prevent</span><br><span class="hljs-comment"> * the pendingNodes list from being modified externally.</span><br><span class="hljs-comment"> */</span><br><span class="hljs-keyword">private</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">processPendingNodes</span><span class="hljs-params">()</span> &#123;<br>  <span class="hljs-keyword">while</span> (!pendingNodes.isEmpty() &amp;&amp;<br>      (maxConcurrentTrackedNodes == <span class="hljs-number">0</span> ||<br>          outOfServiceNodeBlocks.size() &lt; maxConcurrentTrackedNodes)) &#123;<br>    outOfServiceNodeBlocks.put(pendingNodes.poll(), <span class="hljs-literal">null</span>);<br>  &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p> 当拿到nodes之后会调用check()方法，会获取这些nodes的block信息并处理这些pendingReplication Blocks</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">private</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">check</span><span class="hljs-params">()</span> &#123;<br>  <span class="hljs-keyword">final</span> List&lt;DatanodeDescriptor&gt; toRemove = <span class="hljs-keyword">new</span> <span class="hljs-title class_">ArrayList</span>&lt;&gt;();<br><br>  <span class="hljs-keyword">if</span> (outOfServiceNodeBlocks.size() == <span class="hljs-number">0</span>) &#123;<br>    <span class="hljs-comment">// No nodes currently being tracked so simply return</span><br>    <span class="hljs-keyword">return</span>;<br>  &#125;<br><br>  <span class="hljs-comment">// Check if there are any pending nodes to process, ie those where the</span><br>  <span class="hljs-comment">// storage has not been scanned yet. For all which are pending, scan</span><br>  <span class="hljs-comment">// the storage and load the under-replicated block list into</span><br>  <span class="hljs-comment">// outOfServiceNodeBlocks. As this does not modify any external structures</span><br>  <span class="hljs-comment">// it can be done under the namenode *read* lock, and the lock can be</span><br>  <span class="hljs-comment">// dropped between each storage on each node.</span><br>  <span class="hljs-comment">//</span><br>  <span class="hljs-comment">// TODO - This is an expensive call, depending on how many nodes are</span><br>  <span class="hljs-comment">//        to be processed, but it requires only the read lock and it will</span><br>  <span class="hljs-comment">//        be dropped and re-taken frequently. We may want to throttle this</span><br>  <span class="hljs-comment">//        to process only a few nodes per iteration.</span><br>  outOfServiceNodeBlocks.keySet()<br>      .stream()<br>      .filter(n -&gt; outOfServiceNodeBlocks.get(n) == <span class="hljs-literal">null</span>)<br>      .forEach(n -&gt; scanDatanodeStorage(n, <span class="hljs-literal">true</span>));<br><br>  processMaintenanceNodes();<br>  <span class="hljs-comment">// First check the pending replication list and remove any blocks</span><br>  <span class="hljs-comment">// which are now replicated OK. This list is constrained in size so this</span><br>  <span class="hljs-comment">// call should not be overly expensive.</span><br>  processPendingReplication();<br><br>  <span class="hljs-comment">// Now move a limited number of blocks to pending</span><br>  moveBlocksToPending();<br><br>  <span class="hljs-comment">// Check if any nodes have reached zero blocks and also update the stats</span><br>  <span class="hljs-comment">// exposed via JMX for all nodes still being processed.</span><br>  checkForCompletedNodes(toRemove);<br><br>  <span class="hljs-comment">// Finally move the nodes to their final state if they are ready.</span><br>  processCompletedNodes(toRemove);<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<ol>
+<li>processPendingReplication()方法中会调用isBlockReplicatedOk()方法（核心）会判断block是否需要reconstruction，并把信息放到<code>blockManager</code>里的<code>*replication queue*</code></li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs java">blockManager.neededReconstruction.add(block,<br>    liveReplicas, num.readOnlyReplicas(),<br>    num.outOfServiceReplicas(),<br>    blockManager.getExpectedRedundancyNum(block));<br></code></pre></td></tr></table></figure>
+
+<ol>
+<li>moveBlocksToPending()方法会判断queue的长度和pending replication的limit，然后为每一个需要maintenance或者decommission的node创建一个block迭代器，然后每个block都会继续调用上面提到的isBlockReplicatedOk()方法，直到达到block复制的限制就停止并退出循环</li>
+</ol>
+<p>moveBlocksToPending()方法中有一段关于锁的代码很有意思</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><code class="hljs java">Iterator&lt;DatanodeDescriptor&gt; nodeIter =<br>    Iterables.cycle(iterators.keySet()).iterator();<br><span class="hljs-keyword">while</span> (nodeIter.hasNext()) &#123;<br>  <span class="hljs-comment">// Cycle through each node with blocks which still need processed</span><br>  <span class="hljs-type">DatanodeDescriptor</span> <span class="hljs-variable">dn</span> <span class="hljs-operator">=</span> nodeIter.next();<br>  Iterator&lt;BlockInfo&gt; blockIt = iterators.get(dn);<br>  <span class="hljs-keyword">while</span> (blockIt.hasNext()) &#123;<br>    <span class="hljs-comment">// Process the blocks for the node until we find one that needs</span><br>    <span class="hljs-comment">// replication</span><br>    <span class="hljs-keyword">if</span> (blocksProcessed &gt;= blocksPerLock) &#123;<br>      blocksProcessed = <span class="hljs-number">0</span>;<br>      namesystem.writeUnlock();<br>      namesystem.writeLock();<br>    &#125;<br>    blocksProcessed++;<br>    <span class="hljs-keyword">if</span> (nextBlockAddedToPending(blockIt, dn)) &#123;<br>      <span class="hljs-comment">// Exit the inner &quot;block&quot; loop so an iterator for the next datanode</span><br>      <span class="hljs-comment">// is used for the next block.</span><br>      pendingCount++;<br>      <span class="hljs-keyword">break</span>;<br>    &#125;<br>  &#125;<br></code></pre></td></tr></table></figure>
+
+<p>它在释放写锁之后立刻又申请写锁，这是因为 <strong><code>blocksProcessed</code></strong> 变量用于追踪已处理的块数量。当处理的块数量达到预定的阈值 <strong><code>blocksPerLock</code></strong> 时，通过释放当前的写锁并再次获取写锁，可以让其他等待写锁的线程有机会执行。这有助于避免长时间持有写锁而导致其他线程被阻塞的情况发生，从而提高并发性能。</p>
+<aside>
+💡
+
+<p>为什么check这个函数要先调用processPendingReplication然后调用moveBlocksToPending？不能只调用一个吗？</p>
+<p>在某些情况下，可以只调用一个函数来处理块的复制状态，但在某些情况下，调用两个函数可能是必要的。让我们来看看为什么在一些情况下需要调用这两个函数：</p>
+<ol>
+<li><code>processPendingReplication</code>：<ul>
+<li>这个函数的主要任务是处理当前处于“pending replication”状态的块，确保它们的复制数量达到所需的副本数。它通常是周期性地由调度程序调用的，以确保集群中的块保持足够的冗余度。</li>
+<li>当调用这个函数时，它会检查当前哪些块处于挂起状态，并尝试启动复制任务来复制这些块。</li>
+</ul>
+</li>
+<li><code>moveBlocksToPending</code>：<ul>
+<li>这个函数的主要任务是在特定的情况下，例如节点进入维护模式或者下线时，将相关块移动到“pending replication”状态的队列中，以等待后续的复制任务处理。</li>
+<li>当调用这个函数时，它会检查当前是否有节点处于维护模式或者下线，然后将相关块添加到等待复制的队列中。</li>
+</ul>
+</li>
+</ol>
+<p>为什么需要同时调用这两个函数呢？因为它们处理的问题不完全一样：</p>
+<ul>
+<li><strong><code>processPendingReplication</code></strong> 主要关注当前正在挂起的块，而 <strong><code>moveBlocksToPending</code></strong> 主要关注于检查节点状态变化后需要进行的块处理。</li>
+<li>在某些情况下，可能会出现新的块需要复制，或者由于节点状态变化而需要移动一些块到等待复制的队列中，所以同时调用这两个函数可以确保处理块复制状态的全面性和及时性。</li>
+</ul>
+</aside>
+
+<ol>
+<li>checkForCompletedNodes方法会遍历检查节点的状态，如果block的迁移任务完成了的话，就把node添加到toRemove的list中</li>
+<li>processCompletedNodes方法拿到toRemove的list，遍历检查然后设置状态，比如改为decommissioned，并从 <strong><code>outOfServiceNodeBlocks</code></strong> 和 <strong><code>pendingRep</code></strong> 中移除</li>
+</ol>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/CodeDive/" class="print-no-link">#CodeDive</a>
+      
+        <a href="/tags/Hadoop/" class="print-no-link">#Hadoop</a>
+      
+        <a href="/tags/Architecture/" class="print-no-link">#Architecture</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>HDFS Decomission Codes and Intros</div>
+      <div>https://garychow-lgtm.github.io/2024/06/17/HDFS-Decomission-Codes-and-Introduction/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>Author</div>
+          <div>Gary Chow (Yimin Cao)</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>Posted on</div>
+          <div>June 17, 2024</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>Licensed under</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - Attribution">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2024/06/25/Kubernetes-FailedScheduling-Debug/" title="Kubernetes FailedScheduling Debug">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">Kubernetes FailedScheduling Debug</span>
+                        <span class="visible-mobile">Previous</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>Table of Contents</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">Search</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">Keyword</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">Blog works best with JavaScript enabled</div>
+  </noscript>
+</body>
+</html>

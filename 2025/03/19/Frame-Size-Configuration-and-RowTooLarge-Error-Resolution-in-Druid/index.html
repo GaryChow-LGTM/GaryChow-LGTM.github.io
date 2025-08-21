@@ -1,0 +1,682 @@
+
+
+<!DOCTYPE html>
+<html lang="en" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/icons8-ninja-96.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Gary Chow (Yimin Cao)">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="Frame Size Configuration and RowTooLarge Error Resolution in DruidBackground In Apache Druid, data processing usually involves dividing large-scale data into multiple “frames” for processing. In this">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Frame Size Configuration and RowTooLarge Error Resolution in Druid">
+<meta property="og:url" content="https://garychow-lgtm.github.io/2025/03/19/Frame-Size-Configuration-and-RowTooLarge-Error-Resolution-in-Druid/index.html">
+<meta property="og:site_name" content="QQ Zone">
+<meta property="og:description" content="Frame Size Configuration and RowTooLarge Error Resolution in DruidBackground In Apache Druid, data processing usually involves dividing large-scale data into multiple “frames” for processing. In this">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2025-03-19T08:28:28.000Z">
+<meta property="article:modified_time" content="2025-08-21T12:56:48.874Z">
+<meta property="article:author" content="Gary Chow (Yimin Cao)">
+<meta property="article:tag" content="Debug">
+<meta property="article:tag" content="Druid">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>Frame Size Configuration and RowTooLarge Error Resolution in Druid - QQ Zone</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"garychow-lgtm.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.2.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>QQ Zone</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>Home</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>Archives</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>Categories</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>Tags</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>About</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="Frame Size Configuration and RowTooLarge Error Resolution in Druid"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2025-03-19 16:28" pubdate>
+          March 19, 2025 pm
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          772 words
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          7 mins
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">Frame Size Configuration and RowTooLarge Error Resolution in Druid</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h1 id="Frame-Size-Configuration-and-RowTooLarge-Error-Resolution-in-Druid"><a href="#Frame-Size-Configuration-and-RowTooLarge-Error-Resolution-in-Druid" class="headerlink" title="Frame Size Configuration and RowTooLarge Error Resolution in Druid"></a>Frame Size Configuration and RowTooLarge Error Resolution in Druid</h1><h2 id="Background"><a href="#Background" class="headerlink" title="Background"></a>Background</h2><p> In Apache Druid, data processing usually involves dividing large-scale data into multiple “frames” for processing. In this process, the frame size is a key parameter that determines how much data can be processed in each frame. A frame size that is too large or too small can affect performance or cause processing to fail. This error log indicates that while processing a particular piece of data, a row of data was encountered whose size exceeded the specified frame size, causing the task to fail.</p>
+<p> Error Message:</p>
+<figure class="highlight apache"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs apache"><span class="hljs-attribute">RowTooLarge</span>: Encountered row that cannot fit in a single frame (max frame size = <span class="hljs-number">1</span>,<span class="hljs-number">000</span>,<span class="hljs-number">000</span>)<br></code></pre></td></tr></table></figure>
+
+<p> Indicates that while processing data, Druid encountered a row of data whose size exceeded <code>1,000,000</code> bytes (i.e., <code>STANDARD_FRAME_SIZE</code> ) and was unable to fit the current frame size limit.</p>
+<h2 id="Debug"><a href="#Debug" class="headerlink" title="Debug"></a>Debug</h2><ol>
+<li><p><strong>Frame Size Configuration</strong>: As you can see from the code snippet, Druid’s default frame size is <code>1,000,000</code> bytes. the value of <code>STANDARD_FRAME_SIZE</code> is statically defined:</p>
+ <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-type">int</span> <span class="hljs-variable">STANDARD_FRAME_SIZE</span> <span class="hljs-operator">=</span> <span class="hljs-number">1_000_000</span>;<br></code></pre></td></tr></table></figure>
+<p>  This value is used as the standard frame size for memory allocation during Druid task execution:</p>
+ <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs java">  <span class="hljs-keyword">final</span> <span class="hljs-type">InputChannels</span> <span class="hljs-variable">inputChannels</span> <span class="hljs-operator">=</span><br>      <span class="hljs-keyword">new</span> <span class="hljs-title class_">InputChannelsImpl</span>(<br>          workOrder.getQueryDefinition(),<br>          InputSlices.allReadablePartitions(workOrder.getInputs()),<br>          inputChannelFactory,<br>          () -&gt; ArenaMemoryAllocator.createOnHeap(frameContext.memoryParameters().getStandardFrameSize()),<br>          exec,<br>          cancellationId<br>      );<br>    <br><span class="hljs-keyword">public</span> <span class="hljs-type">int</span> <span class="hljs-title function_">getStandardFrameSize</span><span class="hljs-params">()</span><br>&#123;<br>  <span class="hljs-keyword">return</span> STANDARD_FRAME_SIZE;<br>&#125;<br></code></pre></td></tr></table></figure>
+</li>
+<li><p><strong>Task Failure Reason</strong>: The task failed because a row of data exceeded the <code>1,000,000</code> byte size limit and could not fit into a single frame. This error message indicates that during execution, a row of data was too large for the set maximum frame size, causing the task to fail.</p>
+</li>
+<li><p><strong>Modifying the frame size</strong>: If larger rows of data need to be processed, consider increasing the size of <code>STANDARD_FRAME_SIZE</code> to allow larger rows of data to be processed per frame. For example, this could be modified to <code>2,000,000</code> or higher:</p>
+ <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-type">int</span> <span class="hljs-variable">STANDARD_FRAME_SIZE</span> <span class="hljs-operator">=</span> <span class="hljs-number">2_000_000</span>;<br></code></pre></td></tr></table></figure>
+</li>
+<li><p><strong>Memory Optimization</strong>: Increasing the frame size may increase memory consumption, so there is a trade-off between memory usage and data processing performance. If there is not enough memory, increasing the frame size may cause problems such as memory overflow. When adjusting this value, you need to consider the overall system memory and load.</p>
+</li>
+</ol>
+<h2 id="Conclusion"><a href="#Conclusion" class="headerlink" title="Conclusion"></a>Conclusion</h2><p> The task failed because a row of data exceeded the maximum frame size ( <code>1,000,000</code> bytes) configured by Druid. To resolve this issue, you can consider the following options:</p>
+<ol>
+<li><strong>Increase the frame size</strong>: Increase <code>STANDARD_FRAME_SIZE</code> to a larger value, such as <code>2,000,000</code> or higher, to be able to handle larger rows of data.</li>
+<li><strong>Optimize data row size</strong>: If possible, adjust how data is generated to reduce the size of a single row of data.</li>
+<li><strong>Memory management</strong>: Increasing the frame size may increase memory consumption and you need to make sure that the system has enough memory available.</li>
+</ol>
+<p> When adjusting the frame size, it is recommended to test it in conjunction with actual memory usage to avoid other problems caused by insufficient memory.</p>
+<hr>
+<h1 id="Druid-中帧大小配置及-RowTooLarge-错误解决方案"><a href="#Druid-中帧大小配置及-RowTooLarge-错误解决方案" class="headerlink" title="Druid 中帧大小配置及 RowTooLarge 错误解决方案"></a>Druid 中帧大小配置及 RowTooLarge 错误解决方案</h1><h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>在 Apache Druid 中，数据处理通常涉及将大规模数据分为多个“帧”（frame）进行处理。在这个过程中，帧大小（frame size）是一个关键参数，它决定了每个帧最多可以处理多少数据。帧大小过大或过小都可能影响性能或导致处理失败。该错误日志表明在处理某一数据时，遇到一个行数据大小超过了指定的帧大小，从而导致任务失败。</p>
+<p>错误信息：</p>
+<figure class="highlight apache"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs apache"><span class="hljs-attribute">RowTooLarge</span>: Encountered row that cannot fit in a single frame (max frame size = <span class="hljs-number">1</span>,<span class="hljs-number">000</span>,<span class="hljs-number">000</span>)<br></code></pre></td></tr></table></figure>
+
+<p>表明在处理数据时，Druid 遇到了一个数据行，它的大小超过了 <code>1,000,000</code> 字节（即 <code>STANDARD_FRAME_SIZE</code>），无法适配当前的帧大小限制。</p>
+<h2 id="调试"><a href="#调试" class="headerlink" title="调试"></a>调试</h2><ol>
+<li><p><strong>帧大小配置</strong>：从代码片段可以看到，Druid 默认的帧大小是 <code>1,000,000</code> 字节。<code>STANDARD_FRAME_SIZE</code> 的值是静态定义的：</p>
+ <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-type">int</span> <span class="hljs-variable">STANDARD_FRAME_SIZE</span> <span class="hljs-operator">=</span> <span class="hljs-number">1_000_000</span>;<br></code></pre></td></tr></table></figure>
+<p> 该值在 Druid 任务执行过程中被用作内存分配的标准帧大小：</p>
+ <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs java">  <span class="hljs-keyword">final</span> <span class="hljs-type">InputChannels</span> <span class="hljs-variable">inputChannels</span> <span class="hljs-operator">=</span><br>      <span class="hljs-keyword">new</span> <span class="hljs-title class_">InputChannelsImpl</span>(<br>          workOrder.getQueryDefinition(),<br>          InputSlices.allReadablePartitions(workOrder.getInputs()),<br>          inputChannelFactory,<br>          () -&gt; ArenaMemoryAllocator.createOnHeap(frameContext.memoryParameters().getStandardFrameSize()),<br>          exec,<br>          cancellationId<br>      );<br>    <br><span class="hljs-keyword">public</span> <span class="hljs-type">int</span> <span class="hljs-title function_">getStandardFrameSize</span><span class="hljs-params">()</span><br>&#123;<br>  <span class="hljs-keyword">return</span> STANDARD_FRAME_SIZE;<br>&#125;<br></code></pre></td></tr></table></figure>
+</li>
+<li><p><strong>任务失败原因</strong>：任务失败的原因是某个数据行的大小超过了 <code>1,000,000</code> 字节的限制，导致无法装入单一帧中。该错误信息表明，在执行过程中，某一行数据太大，超过了设置的帧最大大小，导致任务失败。</p>
+</li>
+<li><p><strong>修改帧大小</strong>：如果需要处理更大的数据行，可以考虑增加 <code>STANDARD_FRAME_SIZE</code> 的大小，从而允许每个帧处理更大的数据行。例如，可以将其修改为 <code>2,000,000</code> 或更高：</p>
+ <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-type">int</span> <span class="hljs-variable">STANDARD_FRAME_SIZE</span> <span class="hljs-operator">=</span> <span class="hljs-number">2_000_000</span>;<br></code></pre></td></tr></table></figure>
+</li>
+<li><p><strong>内存优化</strong>：增加帧大小可能会增加内存消耗，因此需要权衡内存使用和数据处理性能。如果内存不足，增加帧大小可能会导致内存溢出等问题。调整该值时，需要考虑系统内存和负载的整体情况。</p>
+</li>
+</ol>
+<h2 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h2><p>任务失败是由于某一行数据超过了 Druid 配置的最大帧大小（<code>1,000,000</code> 字节）。为解决此问题，您可以考虑以下几种方案：</p>
+<ol>
+<li><strong>增加帧大小</strong>：将 <code>STANDARD_FRAME_SIZE</code> 增加到更大的值，如 <code>2,000,000</code> 或更高，以便能够处理更大的数据行。</li>
+<li><strong>优化数据行大小</strong>：如果可能，调整数据的生成方式，减少单行数据的大小。</li>
+<li><strong>内存管理</strong>：增加帧大小可能会增加内存消耗，需要确保系统有足够的可用内存。</li>
+</ol>
+<p>调整帧大小时，建议结合实际内存使用情况进行测试，避免因内存不足导致其他问题。</p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/Debug/" class="print-no-link">#Debug</a>
+      
+        <a href="/tags/Druid/" class="print-no-link">#Druid</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>Frame Size Configuration and RowTooLarge Error Resolution in Druid</div>
+      <div>https://garychow-lgtm.github.io/2025/03/19/Frame-Size-Configuration-and-RowTooLarge-Error-Resolution-in-Druid/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>Author</div>
+          <div>Gary Chow (Yimin Cao)</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>Posted on</div>
+          <div>March 19, 2025</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>Licensed under</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - Attribution">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2025/03/19/ingress-and-route53-issues-with-druid-aws-deployments/" title="Ingress and Route53 Issues with Druid AWS Deployments">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">Ingress and Route53 Issues with Druid AWS Deployments</span>
+                        <span class="visible-mobile">Previous</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2024/07/31/spark-history-debug/" title="Spark HistoryServer Intros and Troubleshooting">
+                        <span class="hidden-mobile">Spark HistoryServer Intros and Troubleshooting</span>
+                        <span class="visible-mobile">Next</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>Table of Contents</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">Search</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">Keyword</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">Blog works best with JavaScript enabled</div>
+  </noscript>
+</body>
+</html>

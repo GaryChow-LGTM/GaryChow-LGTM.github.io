@@ -1,0 +1,676 @@
+
+
+<!DOCTYPE html>
+<html lang="en" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/icons8-ninja-96.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Gary Chow (Yimin Cao)">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="HistoryServer IntroductionHistoryServer is an HTTP service built into Spark, we can start it with the following code. When HistoryServer is started, it starts two threads to parse and clean the log fi">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spark HistoryServer Intros and Troubleshooting">
+<meta property="og:url" content="https://garychow-lgtm.github.io/2024/07/31/spark-history-debug/index.html">
+<meta property="og:site_name" content="QQ Zone">
+<meta property="og:description" content="HistoryServer IntroductionHistoryServer is an HTTP service built into Spark, we can start it with the following code. When HistoryServer is started, it starts two threads to parse and clean the log fi">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://garychow-lgtm.github.io/2024/07/31/spark-history-debug/img1.png">
+<meta property="og:image" content="https://garychow-lgtm.github.io/2024/07/31/spark-history-debug/img2.png">
+<meta property="article:published_time" content="2024-07-31T08:18:22.000Z">
+<meta property="article:modified_time" content="2025-08-21T12:56:48.875Z">
+<meta property="article:author" content="Gary Chow (Yimin Cao)">
+<meta property="article:tag" content="Debug">
+<meta property="article:tag" content="Spark">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://garychow-lgtm.github.io/2024/07/31/spark-history-debug/img1.png">
+  
+  
+  
+  <title>Spark HistoryServer Intros and Troubleshooting - QQ Zone</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"garychow-lgtm.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.2.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>QQ Zone</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>Home</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>Archives</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>Categories</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>Tags</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>About</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="Spark HistoryServer Intros and Troubleshooting"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2024-07-31 16:18" pubdate>
+          July 31, 2024 pm
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          386 words
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          4 mins
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">Spark HistoryServer Intros and Troubleshooting</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h2 id="HistoryServer-Introduction"><a href="#HistoryServer-Introduction" class="headerlink" title="HistoryServer Introduction"></a>HistoryServer Introduction</h2><p>HistoryServer is an HTTP service built into Spark, we can start it with the following code. When HistoryServer is started, it starts two threads to parse and clean the log files.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">./sbin/start-history-server.sh<br></code></pre></td></tr></table></figure>
+
+<p>This creates a web interface at <code>http://&lt;server-url&gt;:8080</code>, listing incomplete and completed applications and attempts.</p>
+<p>The spark jobs themselves must be configured to log events, and to log them to the same shared, writable directory. </p>
+<p>For example, if the server was configured with a log directory of <code>hdfs://namenode/spark-logs</code>, then the client-side options would be:</p>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs stylus">spark<span class="hljs-selector-class">.eventLog</span><span class="hljs-selector-class">.enabled</span> true<br>spark<span class="hljs-selector-class">.eventLog</span><span class="hljs-selector-class">.dir</span> hdfs:<span class="hljs-comment">//namenode/spark-logs</span><br></code></pre></td></tr></table></figure>
+
+<p><img src="/2024/07/31/spark-history-debug/img1.png" srcset="/img/loading.gif" lazyload title="img1"></p>
+<p>To introduce the Spark History Server, the flowchart below outlines its workflow.</p>
+<p>The Spark History Server relies on the Spark Event system. During a Spark task, various SparkListenerEvents are generated, like ApplicationStart and StageCompleted. These events are sent to the ListenerBus, where they are monitored by registered listeners. The EventLoggingListener writes these events to a JSON log file on a file system like HDFS.</p>
+<p>The FsHistoryProvider in the History Server scans the log storage path periodically, extracts profile information (such as Application_id, user, status, start_time, end_time, event_log_path) from the log files, and maintains a list of this data. When a user accesses the UI, the system searches this list for the requested task and reads the corresponding event log file for details if it exists.</p>
+<h2 id="Issue"><a href="#Issue" class="headerlink" title="Issue"></a>Issue</h2><p>In some cases, after submitting a job using Spark, the log information corresponding to the appId cannot be found in the <strong>Spark HistoryServer WebUI (v3.2.1)</strong>. </p>
+<p>As a result, users cannot analyze the job log through the HistoryServer (HS). Upon analyzing the source code, it was found that the issue is due to the misuse of a data structure in a multithreading context.</p>
+<h2 id="Data-Structure"><a href="#Data-Structure" class="headerlink" title="Data Structure"></a>Data Structure</h2><p>Before explaining the problem, it’s important to understand the key data structure in HS. The misuse of this data structure causes the issue. HS uses a data structure called Listing to store key-value pairs, such as:</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs xml">&lt;appId, InfoData<span class="hljs-tag">&lt;<span class="hljs-name">appId</span>&gt;</span>&gt;<br>&lt;logPath, InfoData<span class="hljs-tag">&lt;<span class="hljs-name">logPath</span>&gt;</span>&gt;<br></code></pre></td></tr></table></figure>
+
+<h2 id="Log-Parsing-Process"><a href="#Log-Parsing-Process" class="headerlink" title="Log Parsing Process"></a>Log Parsing Process</h2><p>The HS runs the <code>checkForLogs</code> method every 10 seconds by default to build the application list based on the current contents of the log directory. During each execution, this method scans the specified logDir and parses the log files to update its KVStore listing. The process includes two main methods:</p>
+<ol>
+<li>update&#x2F;add log file records respectively</li>
+<li>remove stale log file records.</li>
+</ol>
+<p>These methods are executed in different threads via <code>submitLogProcessTask</code>.</p>
+<h2 id="Issue-Scenario"><a href="#Issue-Scenario" class="headerlink" title="Issue Scenario"></a>Issue Scenario</h2><p>When <code>checkForLogs</code> is executed for the first time, the ABC job submitted by the user is still running. The file name in the log directory is <code>ABC.inprocess</code>, so the KVStore <code>Listing</code> adds two new entries:</p>
+<figure class="highlight 1c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs 1c">&lt;&#x27;ABC&#x27;, InfoData&lt;&#x27;ABC&#x27;&gt;&gt;<br>&lt;&#x27;/tmp/ABC.inprocess&#x27;, InfoData&lt;&#x27;/tmp/ABC.inprocess&#x27;&gt;&gt;<br></code></pre></td></tr></table></figure>
+<p>In the next run of <code>checkForLogs</code>, now the ABC application has finished, the log file <code>/tmp/ABC.inprocess</code> has been deleted, and the new log file path is <code>/tmp/ABC</code>, so in this run of <code>checkForLogs</code>, two threads will start and do following things:</p>
+<p><strong>Thread 1</strong>: update&#x2F;add log file records, this thread will parsing the log path <code>/tmp/ABC</code>. First it will update the<code> &lt;&#39;ABC&#39;, InfoData&lt;&#39;ABC&#39;&gt;&gt;</code> in the KVstore Listing, second it will add a new record <code>&lt;&#39;/tmp/ABC&#39;, InfoData&lt;&#39;/tmp/ABC&#39;&gt;&gt;</code> in KVstore Listing.</p>
+<p><strong>Thread 2</strong>: remove stale log file records, this thread will notice that the log path <code>/tmp/ABC.inprocess</code> has disappeared. First it will filter this path as a stale data, second it will start <code>cleanAppData</code> method, in this method the following code will be executed:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-type">val</span> <span class="hljs-variable">app</span> <span class="hljs-operator">=</span> load(appId)<br></code></pre></td></tr></table></figure>
+<p>Usually, by the time this method loads the <code>appId</code>, Thread 1 has already updated <code>&lt;&#39;ABC&#39;, InfoData&lt;&#39;ABC&#39;&gt;&gt;</code> in the KVStore Listing. Therefore, when the following code executes, the value of <code>isStale</code> will be <code>false</code>.</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-type">val</span> <span class="hljs-variable">isStale</span> <span class="hljs-operator">=</span> attempt.headOption.exists &#123; a =&gt;<br>   <span class="hljs-keyword">if</span> (a.logPath != <span class="hljs-keyword">new</span> <span class="hljs-title class_">Path</span>(logPath).getName()) &#123;<br>     <span class="hljs-literal">false</span><br>   &#125; <span class="hljs-keyword">else</span> &#123;<br>     ...<br>     <span class="hljs-literal">true</span><br>   &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>However, in some cases, when this method loads the <code>appId</code>, Thread 1 has not finished the update. As a result, when the code above executes, the value of <code>isStale</code> will be <code>true</code>. The worst outcome is that it will delete the log file record <code>&lt;&#39;ABC&#39;, InfoData&lt;&#39;ABC&#39;&gt;&gt;</code> in the KVStore Listing after Thread 1 has completed the update.</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">if</span> (isStale) &#123;<br>   <span class="hljs-keyword">if</span> (others.nonEmpty) &#123;<br>     <span class="hljs-type">val</span> <span class="hljs-variable">newAppInfo</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">ApplicationInfoWrapper</span>(app.info, others)<br>     listing.write(newAppInfo)<br>   &#125; <span class="hljs-keyword">else</span> &#123;<br>     listing.delete(classOf[ApplicationInfoWrapper], appId)<br>   &#125;<br> &#125;<br>&#125; <span class="hljs-keyword">catch</span> &#123;<br>  <span class="hljs-keyword">case</span> _: NoSuchElementException =&gt;<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>So, the log file record <code>&lt;&#39;ABC&#39;, InfoData&lt;&#39;ABC&#39;&gt;&gt;</code> will be permanently removed. When users access the WebUI for this application, they will see “Application not found” even though the log file for the app still exists.</p>
+<p>One thing to note is that the log file record <code>&lt;&#39;ABC&#39;, InfoData&lt;&#39;ABC&#39;&gt;&gt;</code> will not be added to the KVStore Listing again. In the next run of <code>checkForLogs</code>, the entry <code>&lt;&#39;/tmp/ABC&#39;, InfoData&lt;&#39;/tmp/ABC&#39;&gt;&gt;</code> indicates that the log file of ABC does not need to be reloaded, so the method will skip this log file.</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-type">val</span> <span class="hljs-variable">info</span> <span class="hljs-operator">=</span> listing.read(classOf[LogInfo], reader.rootPath.toString())<br> <br><span class="hljs-keyword">if</span> (shouldReloadLog(info, reader)) &#123;<br>    ...<br>    &#125; <span class="hljs-keyword">else</span> &#123;<br>    <span class="hljs-literal">false</span><br>    &#125;<br></code></pre></td></tr></table></figure>
+<p>To better show the process of bug occurrence, below is the flowchart</p>
+<p><img src="/2024/07/31/spark-history-debug/img2.png" srcset="/img/loading.gif" lazyload title="img2"></p>
+<h2 id="Solution"><a href="#Solution" class="headerlink" title="Solution"></a>Solution</h2><p>Due to multi-thread error common use of KVstore Listing, we make the <code>cleanAppData</code> method atomic, just like the addListing mothod, this allows threads to use KVstore Listing without data errors. </p>
+<p>For example:</p>
+<p>If Thread 1 gets the lock on the KVstore Listing before Thread 2, it will update the record of <code>&lt;appId, InfoData&lt;appId&gt;&gt;</code>, so Thread 2 can safely get the record and it will make isStale be <code>false</code>, so the <code>cleanAppData</code> method will not delete the record in KVstore Listing.</p>
+<p>If Thread 2 gets the lock on the KVstore Listing before Thread 1, it will make isStale be <code>true</code>, and the <code>cleanAppData</code> method will delete the record in KVstore Listing. But it will be ok, beacuse Thread 1 will add the record of <code>&lt;appId, InfoData&lt;appId&gt;&gt;</code> in KVstore Listing again.</p>
+<p>In all situations above, the record of KVstore Listing will not remove unexpectedly.</p>
+<p>This is the method used to fix the problem in Spark v3.2.2 (<a target="_blank" rel="noopener" href="https://github.com/apache/spark/pull/36424/files">https://github.com/apache/spark/pull/36424/files</a>).</p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/Debug/" class="print-no-link">#Debug</a>
+      
+        <a href="/tags/Spark/" class="print-no-link">#Spark</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>Spark HistoryServer Intros and Troubleshooting</div>
+      <div>https://garychow-lgtm.github.io/2024/07/31/spark-history-debug/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>Author</div>
+          <div>Gary Chow (Yimin Cao)</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>Posted on</div>
+          <div>July 31, 2024</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>Licensed under</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - Attribution">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2025/03/19/Frame-Size-Configuration-and-RowTooLarge-Error-Resolution-in-Druid/" title="Frame Size Configuration and RowTooLarge Error Resolution in Druid">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">Frame Size Configuration and RowTooLarge Error Resolution in Druid</span>
+                        <span class="visible-mobile">Previous</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2024/07/31/Kubernetes-nodeAffinity-And-Selector/" title="Kubernetes nodeAffinity &amp; nodeSelector Intros">
+                        <span class="hidden-mobile">Kubernetes nodeAffinity &amp; nodeSelector Intros</span>
+                        <span class="visible-mobile">Next</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>Table of Contents</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">Search</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">Keyword</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">Blog works best with JavaScript enabled</div>
+  </noscript>
+</body>
+</html>

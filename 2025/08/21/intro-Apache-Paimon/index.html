@@ -1,0 +1,694 @@
+
+
+<!DOCTYPE html>
+<html lang="en" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/icons8-ninja-96.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Gary Chow (Yimin Cao)">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="湖中的树：Paimon分析及场景推荐前言：读写两难数据湖拥有近乎无限的扩展性和低廉的存储成本，但是如何同时进行高效的数据写入和数据查询仍然是一件难题，正所谓”没有银弹”(No Silver Bullet)。 Paimon、Hudi 和 Iceberg 是业界主流的三种数据湖技术，通过各自方案来处理“读写两难”问题。 数据湖系列文章将首先以 Paimon 进行介绍，阐述其核心原理，提供不同业务场景下">
+<meta property="og:type" content="article">
+<meta property="og:title" content="intro-Apache-Paimon">
+<meta property="og:url" content="https://garychow-lgtm.github.io/2025/08/21/intro-Apache-Paimon/index.html">
+<meta property="og:site_name" content="QQ Zone">
+<meta property="og:description" content="湖中的树：Paimon分析及场景推荐前言：读写两难数据湖拥有近乎无限的扩展性和低廉的存储成本，但是如何同时进行高效的数据写入和数据查询仍然是一件难题，正所谓”没有银弹”(No Silver Bullet)。 Paimon、Hudi 和 Iceberg 是业界主流的三种数据湖技术，通过各自方案来处理“读写两难”问题。 数据湖系列文章将首先以 Paimon 进行介绍，阐述其核心原理，提供不同业务场景下">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2025-08-21T13:14:23.000Z">
+<meta property="article:modified_time" content="2025-08-21T13:16:00.302Z">
+<meta property="article:author" content="Gary Chow (Yimin Cao)">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>intro-Apache-Paimon - QQ Zone</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"garychow-lgtm.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.2.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>QQ Zone</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>Home</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>Archives</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>Categories</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>Tags</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>About</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="intro-Apache-Paimon"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2025-08-21 21:14" pubdate>
+          August 21, 2025 pm
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          1.3k words
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          11 mins
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">intro-Apache-Paimon</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h1 id="湖中的树：Paimon分析及场景推荐"><a href="#湖中的树：Paimon分析及场景推荐" class="headerlink" title="湖中的树：Paimon分析及场景推荐"></a>湖中的树：Paimon分析及场景推荐</h1><h3 id="前言：读写两难"><a href="#前言：读写两难" class="headerlink" title="前言：读写两难"></a>前言：读写两难</h3><p>数据湖拥有近乎无限的扩展性和低廉的存储成本，但是如何同时进行高效的数据写入和数据查询仍然是一件难题，正所谓”没有银弹”(No Silver Bullet)。</p>
+<p><strong>Paimon</strong>、<strong>Hudi</strong> 和 <strong>Iceberg</strong> 是业界主流的三种数据湖技术，通过各自方案来处理“读写两难”问题。</p>
+<p>数据湖系列文章将首先以 Paimon 进行介绍，阐述其核心原理，提供不同业务场景下的选型推荐。</p>
+<h3 id="一、为“写”而生的LSM"><a href="#一、为“写”而生的LSM" class="headerlink" title="一、为“写”而生的LSM"></a>一、为“写”而生的LSM</h3><p>要理解 Paimon，就必须先理解其架构的灵魂——<strong>日志结构合并树（Log-Structured Merge-tree, LSM）</strong>。有HBase或者RocksDB开发或者使用经验的同学应该对这个结构不陌生，它们都是 LSM 数的果实。</p>
+<p>LSM树并非一棵物理的树，而是一种分层的、面向磁盘的数据结构，其设计的唯一初衷，就是将随机、离散的写入操作，转化为对磁盘最高效的批量、顺序写入。</p>
+<ul>
+<li><strong>核心组件</strong>：<ul>
+<li><strong>MemTable（内存表）</strong>：所有新数据（增、删、改）首先在内存中被写入一个有序的数据结构。此操作速度极快，几乎没有I&#x2F;O开销。</li>
+<li><strong>SSTable（有序字符串表）</strong>：当MemTable写满后，其内容会被排序并作为一个整体的、不可变的、<strong>内部有序</strong>的数据文件（SSTable）一次性刷写到磁盘。</li>
+<li><strong>Compaction（合并）</strong>：后台进程会定期将磁盘上零散、多层级的SSTable文件合并成更大、更少、层级更高的文件，在此过程中清理冗余和已删除的数据。</li>
+</ul>
+</li>
+</ul>
+<p>LSM树的精髓在于，它用内存的高速读写能力作为缓冲，将对最消耗磁盘性能的“随机写”，转化为磁盘开销较小的“顺序写”，从而实现了极高的写入吞吐量。</p>
+<h3 id="二、湖中的树"><a href="#二、湖中的树" class="headerlink" title="二、湖中的树"></a>二、湖中的树</h3><p>如果说HBase是LSM树在NoSQL数据库的实现，那么Paimon就是LSM树在数据湖的实现。</p>
+<p>可以将Paimon理解为构建在HDFS或对象存储之上的、为流式更新定制的轻量级数据库存储引擎。</p>
+<ul>
+<li><strong>写入流程</strong>：<ul>
+<li>当流式数据（尤其是CDC）写入Paimon表时，变更数据会进入对应分桶（Bucket）的<strong>MemTable</strong>。</li>
+<li>借助Flink等计算引擎的Checkpoint机制，写满的MemTable被排序并刷写成磁盘上<strong>新的SSTable文件</strong>。</li>
+</ul>
+</li>
+<li><strong>Paimon的核心优势</strong>：<ol>
+<li><strong>内存优先，写入无延迟</strong>：数据先进入内存，保证了极低的写入延迟，完美匹配流式处理的需求。</li>
+<li><strong>数据原生有序</strong>：这是Paimon与Hudi、Iceberg最根本的区别之一。由于在内存中经过排序，Paimon写入磁盘的SSTable文件<strong>内部数据是按主键有序的</strong>。这为其带来了强大的主键点查（Point Lookup）能力，查询效率远超传统的文件扫描。</li>
+<li><strong>后台文件管理</strong>：LSM原生的Compaction机制，帮助Paimon在后台自动合并小文件、优化数据布局，维持数据湖的查询性能。</li>
+</ol>
+</li>
+</ul>
+<h3 id="三、横向对比"><a href="#三、横向对比" class="headerlink" title="三、横向对比"></a>三、横向对比</h3><table>
+<thead>
+<tr>
+<th>对比维度</th>
+<th>Paimon (高性能流式引擎)</th>
+<th>Hudi (功能全面的平台管家)</th>
+<th>Iceberg (严谨可靠的架构蓝图)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>核心原理</strong></td>
+<td><strong>LSM数据结构</strong></td>
+<td><strong>文件版本管理 (CoW &#x2F; MoR)</strong></td>
+<td><strong>原子性的元数据规范</strong></td>
+</tr>
+<tr>
+<td><strong>写入第一站</strong></td>
+<td><strong>内存</strong></td>
+<td><strong>磁盘</strong></td>
+<td><strong>磁盘</strong></td>
+</tr>
+<tr>
+<td><strong>数据组织</strong></td>
+<td><strong>行级有序</strong> (文件内部按主键排序)</td>
+<td><strong>文件级</strong> (文件内部无序)</td>
+<td><strong>文件级</strong> (文件内部无序)</td>
+</tr>
+<tr>
+<td><strong>最强优势</strong></td>
+<td><strong>高频更新(CDC)、流式订阅、Flink原生集成</strong></td>
+<td><strong>读&#x2F;写模式明确可选、自带表服务、增量处理</strong></td>
+<td><strong>引擎无关、Schema&#x2F;分区演进、事务可靠性</strong></td>
+</tr>
+<tr>
+<td><strong>最佳搭档</strong></td>
+<td><strong>Apache Flink</strong></td>
+<td><strong>Apache Spark, Flink</strong></td>
+<td><strong>Spark, Flink, Trino, Presto… (所有引擎)</strong></td>
+</tr>
+</tbody></table>
+<h3 id="四、总结与推荐"><a href="#四、总结与推荐" class="headerlink" title="四、总结与推荐"></a>四、总结与推荐</h3><p>没有银弹。</p>
+<p>数据湖技术选型时，选择哪种格式并无绝对的优劣，关键在于根据业务场景和实际需求进行抉择。</p>
+<p>场景一：构建以Flink为核心的流式数仓</p>
+<p>当整条Data Pipeline以Flink为核心，希望存储层能够与计算层高效协同，Paimon是必然之选。它与Flink的检查点、状态管理完全对齐，提供了<strong>原生集成</strong>体验和<strong>端到端的Exactly-Once</strong>语义保证。</p>
+<ul>
+<li><strong>典型案例</strong>：完全基于Flink SQL构建的端到端实时数仓，从Flink CDC采集数据，到Flink SQL实时清洗加工，再到Paimon入湖存储。</li>
+</ul>
+<p>场景二：需要处理海量、高频更新的CDC数据同步</p>
+<p>将上游事务型数据库（如MySQL, PostgreSQL）的变更数据（CDC）实时同步到数据湖，并且这些变更包含大量的<code>UPDATE</code>和<code>DELETE</code>操作时，Paimon基于LSM树的架构将发挥优势。其<strong>极低的写入延迟</strong>和<strong>高效的主键处理能力</strong>，使其成为处理CDC场景的好选择。</p>
+<ul>
+<li><strong>典型案例</strong>：大型电商的订单库（每天有数亿次的状态更新）或物流系统的包裹状态库，实时、准确地同步到数据湖中进行分析。</li>
+</ul>
+<p>当你的处于上述两种类似场景时，“湖中的树” —— Paimon 会是一个不错的选择。</p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>intro-Apache-Paimon</div>
+      <div>https://garychow-lgtm.github.io/2025/08/21/intro-Apache-Paimon/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>Author</div>
+          <div>Gary Chow (Yimin Cao)</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>Posted on</div>
+          <div>August 21, 2025</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>Licensed under</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - Attribution">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2025/08/21/hello-world/" title="Hello World">
+                        <span class="hidden-mobile">Hello World</span>
+                        <span class="visible-mobile">Next</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>Table of Contents</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">Search</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">Keyword</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">Blog works best with JavaScript enabled</div>
+  </noscript>
+</body>
+</html>
