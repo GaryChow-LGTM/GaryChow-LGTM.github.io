@@ -1,0 +1,681 @@
+
+
+<!DOCTYPE html>
+<html lang="en,zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/icons8-ninja-96.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Gary Chow (Yimin Cao)">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="源码分析 - Flink FileSystemTableSink 中自定义分区策略的创建与调用机制详解在使用 Flink 通过 Table API 或 SQL 写入文件系统时，若启用了自定义分区，系统如何注入并应用参数 sink.partition-commit.policy.kind 来控制分区提交行为？本文将从源码角度梳理这套机制的调用路径与实现细节。 本人实现的 [FLINK-32388]A">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flink-FileSystemTableSink-Code-Intro">
+<meta property="og:url" content="https://garychow-lgtm.github.io/zh-CN/2025/07/14/Flink-FileSystemTableSink-Code-Intro/index.html">
+<meta property="og:site_name" content="QQ Zone">
+<meta property="og:description" content="源码分析 - Flink FileSystemTableSink 中自定义分区策略的创建与调用机制详解在使用 Flink 通过 Table API 或 SQL 写入文件系统时，若启用了自定义分区，系统如何注入并应用参数 sink.partition-commit.policy.kind 来控制分区提交行为？本文将从源码角度梳理这套机制的调用路径与实现细节。 本人实现的 [FLINK-32388]A">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2025-07-14T08:05:08.000Z">
+<meta property="article:modified_time" content="2026-04-22T09:48:00.498Z">
+<meta property="article:author" content="Gary Chow (Yimin Cao)">
+<meta property="article:tag" content="CodeDive">
+<meta property="article:tag" content="Flink">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>Flink-FileSystemTableSink-Code-Intro - QQ Zone</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"garychow-lgtm.github.io","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.2.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>QQ Zone</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/en/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/en/" target="_self">
+                
+                <span>EN</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/zh-CN/" target="_self">
+                
+                <span>中文</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="Flink-FileSystemTableSink-Code-Intro"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2025-07-14 16:05" pubdate>
+          2025年7月14日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          864 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          8 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">Flink-FileSystemTableSink-Code-Intro</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h1 id="源码分析-Flink-FileSystemTableSink-中自定义分区策略的创建与调用机制详解"><a href="#源码分析-Flink-FileSystemTableSink-中自定义分区策略的创建与调用机制详解" class="headerlink" title="源码分析 - Flink FileSystemTableSink 中自定义分区策略的创建与调用机制详解"></a>源码分析 - Flink FileSystemTableSink 中自定义分区策略的创建与调用机制详解</h1><p>在使用 Flink 通过 Table API 或 SQL 写入文件系统时，若启用了自定义分区，系统如何注入并应用参数 sink.partition-commit.policy.kind 来控制分区提交行为？本文将从源码角度梳理这套机制的调用路径与实现细节。</p>
+<p>本人实现的 [FLINK-32388]Add the ability to pass parameters to CUSTOM PartitionCommitPolicy <a target="_blank" rel="noopener" href="https://github.com/apache/flink/pull/22831">https://github.com/apache/flink/pull/22831</a> 也是基于本篇文章的源码分析而实现的。</p>
+<p>示例：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs java"># 配置双策略链（元数据提交+自定义）<br>sink.partition-commit.policy.kind: custom<br><br># 自定义策略配置<br>sink.partition-commit.policy.custom.class: com.company.CustomPolicy<br>sink.partition-commit.policy.custom.parameters: param1,param2<br></code></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="一、调用链概览：参数作用于哪里？"><a href="#一、调用链概览：参数作用于哪里？" class="headerlink" title="一、调用链概览：参数作用于哪里？"></a><strong>一、调用链概览：参数作用于哪里？</strong></h2><p>当用户提交 Flink SQL 作业，FileSystemTableSink 会作为 TableSink 参与物理执行计划的构建。其核心的参数处理逻辑发生在如下调用链中：</p>
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs nginx"><span class="hljs-attribute">translateToPlanInternal</span><br> └── createSinkTransformation<br>     └── getSinkRuntimeProvider<br>         └── consumeDataStream<br>             └── consume<br>                 └── createStreamingSink<br>                     └── sink（创建 PartitionCommitter）<br>                         └── initializeState（构建策略链）<br></code></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="二、物理计划转换：从-Plan-到-Sink-的转化"><a href="#二、物理计划转换：从-Plan-到-Sink-的转化" class="headerlink" title="二、物理计划转换：从 Plan 到 Sink 的转化"></a><strong>二、物理计划转换：从 Plan 到 Sink 的转化</strong></h2><p>Flink Planner 在构造物理执行计划时（Transformation 或 DataStream），会调用 TableSink 的 translateToPlanInternal 方法。在流式写入文件系统时，最终会进入 consume 方法中：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-meta">@Override</span><br><span class="hljs-keyword">public</span> SinkRuntimeProvider <span class="hljs-title function_">getSinkRuntimeProvider</span><span class="hljs-params">(Context sinkContext)</span> &#123;<br>    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">DataStreamSinkProvider</span>() &#123;<br>        <span class="hljs-meta">@Override</span><br>        <span class="hljs-keyword">public</span> DataStreamSink&lt;?&gt; consumeDataStream(<br>                ProviderContext providerContext, DataStream&lt;RowData&gt; dataStream) &#123;<br>            <span class="hljs-keyword">return</span> consume(providerContext, dataStream, sinkContext);<br>        &#125;<br>    &#125;;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>通过”数据是否有界”来判断是否是流处理（unbounded）：</p>
+<ul>
+<li>若为流模式，则进入 createStreamingSink，构建 FileSystemSink；</li>
+<li>否则使用 createBatchSink 执行批量输出。</li>
+</ul>
+<hr>
+<h2 id="三、策略链构建核心：createStreamingSink-sink"><a href="#三、策略链构建核心：createStreamingSink-sink" class="headerlink" title="三、策略链构建核心：createStreamingSink -&gt; sink"></a><strong>三、策略链构建核心：createStreamingSink -&gt; sink</strong></h2><p>createStreamingSink 中最关键的调用是 sink() 方法，负责将数据写入文件系统并执行分区提交策略，保证数据一致性和可见性。</p>
+<p>它负责最终创建分区提交组件 PartitionCommitter，并将其与 writerStream 进行连接：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> DataStreamSink&lt;?&gt; sink(<br>    ProviderContext providerContext,<br>    DataStream&lt;PartitionCommitInfo&gt; writerStream,<br>    Path path,<br>    ObjectIdentifier tableIdentifier,<br>    List&lt;String&gt; partitionKeys,<br>    TableMetaStoreFactory metaStoreFactory,<br>    FileSystemFactory fsFactory,<br>    ReadableConfig tableOptions<br>) &#123;<br>    <span class="hljs-comment">// 参数判断：是否启用分区提交策略</span><br>    <span class="hljs-keyword">if</span> (partitionKeys.size() &gt; <span class="hljs-number">0</span> &amp;&amp; options.contains(SINK_PARTITION_COMMIT_POLICY_KIND)) &#123;<br>        <span class="hljs-comment">// 构建提交器</span><br>        <span class="hljs-type">PartitionCommitter</span> <span class="hljs-variable">committer</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">PartitionCommitter</span>(<br>            path, tableIdentifier, partitionKeys, metaStoreFactory, fsFactory, tableOptions.toConfiguration()<br>        );<br>        <span class="hljs-keyword">return</span> writerStream.transform(<span class="hljs-string">&quot;Partition Committer&quot;</span>, committer);<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="四、运行时策略链构建机制-PartitionCommitter"><a href="#四、运行时策略链构建机制-PartitionCommitter" class="headerlink" title="四、运行时策略链构建机制: PartitionCommitter"></a><strong>四、运行时策略链构建机制: PartitionCommitter</strong></h2><p>在 Flink Job 启动或恢复时，PartitionCommitter.initializeState() 被自动调用：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">initializeState</span><span class="hljs-params">(StateInitializationContext context)</span> <span class="hljs-keyword">throws</span> Exception &#123;<br>    <span class="hljs-type">PartitionCommitPolicyFactory</span> <span class="hljs-variable">factory</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">PartitionCommitPolicyFactory</span>(<br>        conf.get(SINK_PARTITION_COMMIT_POLICY_KIND),     <span class="hljs-comment">// 如 &quot;metastore,success-file&quot;</span><br>        conf.get(SINK_PARTITION_COMMIT_POLICY_CLASS),     <span class="hljs-comment">// 自定义类名（可选）</span><br>        conf.get(SINK_PARTITION_COMMIT_SUCCESS_FILE_NAME), <span class="hljs-comment">// success-file 策略用</span><br>        conf.get(SINK_PARTITION_COMMIT_POLICY_CLASS_PARAMETERS) <span class="hljs-comment">// 自定义类参数（可选）</span><br>    );<br>    <span class="hljs-built_in">this</span>.policies = factory.createPolicyChain(<br>        getUserCodeClassloader(), <span class="hljs-comment">// 用户类加载器</span><br>        () -&gt; &#123; <span class="hljs-comment">// 获取文件系统实例的工厂</span><br>            <span class="hljs-keyword">try</span> &#123;<br>                <span class="hljs-keyword">return</span> fsFactory.create(locationPath.toUri());<br>            &#125; <span class="hljs-keyword">catch</span> (IOException e) &#123;<br>                <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">RuntimeException</span>(e);<br>            &#125;<br>        &#125;<br>    );<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="五、策略工厂-PartitionCommitPolicyFactory-的核心逻辑"><a href="#五、策略工厂-PartitionCommitPolicyFactory-的核心逻辑" class="headerlink" title="五、策略工厂 PartitionCommitPolicyFactory 的核心逻辑"></a><strong>五、策略工厂 PartitionCommitPolicyFactory 的核心逻辑</strong></h2><p>策略链的创建会用到用户自定义类的类加载器(UserCodeClassloader)和文件系统工厂(FileSystem factory)，确保策略能够正确加载用户代码和操作分区文件系统。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">/** Create a policy chain. */</span><br><span class="hljs-keyword">public</span> List&lt;PartitionCommitPolicy&gt; <span class="hljs-title function_">createPolicyChain</span><span class="hljs-params">(</span><br><span class="hljs-params">        ClassLoader cl, Supplier&lt;FileSystem&gt; fsSupplier)</span> &#123;<br>    String[] policyStrings = policyKind.split(<span class="hljs-string">&quot;,&quot;</span>);<br>    <span class="hljs-keyword">return</span> Arrays.stream(policyStrings)<br>            .map(<br>                    name -&gt; &#123;<br>                        <span class="hljs-keyword">switch</span> (name.toLowerCase()) &#123;<br>                            <span class="hljs-keyword">case</span> PartitionCommitPolicy.METASTORE:<br>                                <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">MetastoreCommitPolicy</span>();<br>                            <span class="hljs-keyword">case</span> PartitionCommitPolicy.SUCCESS_FILE:<br>                                <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">SuccessFileCommitPolicy</span>(<br>                                        successFileName, fsSupplier.get());<br>                            <span class="hljs-keyword">case</span> PartitionCommitPolicy.CUSTOM:<br>                                <span class="hljs-keyword">try</span> &#123;<br>                                    <span class="hljs-keyword">if</span> (parameters != <span class="hljs-literal">null</span> &amp;&amp; !parameters.isEmpty()) &#123;<br>                                        String[] paramStrings =<br>                                                parameters.toArray(<span class="hljs-keyword">new</span> <span class="hljs-title class_">String</span>[<span class="hljs-number">0</span>]);<br>                                        Class&lt;?&gt;[] classes = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Class</span>&lt;?&gt;[parameters.size()];<br>                                        <span class="hljs-keyword">for</span> (<span class="hljs-type">int</span> <span class="hljs-variable">i</span> <span class="hljs-operator">=</span> <span class="hljs-number">0</span>; i &lt; parameters.size(); i++) &#123;<br>                                            classes[i] = String.class;<br>                                        &#125;<br>                                        <span class="hljs-keyword">return</span> (PartitionCommitPolicy)<br>                                                cl.loadClass(customClass)<br>                                                        .getConstructor(classes)<br>                                                        .newInstance((Object[]) paramStrings);<br>                                    &#125; <span class="hljs-keyword">else</span> &#123;<br>                                        <span class="hljs-keyword">return</span> (PartitionCommitPolicy)<br>                                                cl.loadClass(customClass).newInstance();<br>                                    &#125;&#125;&#125;&#125;&#125;)<br>            .collect(Collectors.toList());&#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>💡 关键点：自定义类必须实现 PartitionCommitPolicy 接口，并提供合适的构造方法（带参或无参均可）。</p>
+</blockquote>
+<hr>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a><strong>总结</strong></h2><p>参数如 <code>sink.partition-commit.policy.kind = metastore,success-file</code> 的注入生效流程如下：</p>
+<figure class="highlight isbl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs isbl">用户配置<br>  ↓<br><span class="hljs-variable">FileSystemTableSink</span> -&gt; <span class="hljs-function"><span class="hljs-title">sink</span>()</span><br>  ↓<br>构造 <span class="hljs-variable">PartitionCommitter</span><br>  ↓<br><span class="hljs-function"><span class="hljs-title">initializeState</span>()</span><br>  ↓<br><span class="hljs-variable">PartitionCommitPolicyFactory</span> -&gt; <span class="hljs-function"><span class="hljs-title">createPolicyChain</span>()</span><br>  ↓<br>创建策略实例 → 构成策略链 → 实现 <span class="hljs-variable">PartitionCommitter</span><br></code></pre></td></tr></table></figure>
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/CodeDive/" class="print-no-link">#CodeDive</a>
+      
+        <a href="/tags/Flink/" class="print-no-link">#Flink</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>Flink-FileSystemTableSink-Code-Intro</div>
+      <div>https://garychow-lgtm.github.io/zh-CN/2025/07/14/Flink-FileSystemTableSink-Code-Intro/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>Gary Chow (Yimin Cao)</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2025年7月14日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/en/2025/03/19/ingress-and-route53-issues-with-druid-aws-deployments/" title="Ingress and Route53 Issues with Druid AWS Deployments">
+                        <span class="hidden-mobile">Ingress and Route53 Issues with Druid AWS Deployments</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
