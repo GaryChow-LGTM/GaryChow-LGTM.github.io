@@ -2,7 +2,6 @@
   'use strict';
 
   var LANGS = ['en', 'zh-CN'];
-  var DEFAULT_LANG = 'en';
   var SWITCHER_PATHS = { '/en/': 1, '/zh-CN/': 1 };
 
   function detectLang() {
@@ -11,7 +10,7 @@
       var prefix = '/' + LANGS[i] + '/';
       if (path === prefix || path.indexOf(prefix) === 0) return LANGS[i];
     }
-    return DEFAULT_LANG;
+    return null;
   }
 
   function stripLangPrefix(href) {
@@ -26,7 +25,7 @@
   function rewriteHref(href, currentLang) {
     if (!href || href.charAt(0) !== '/') return href;
     if (SWITCHER_PATHS[href]) return href;
-    if (currentLang === DEFAULT_LANG) return href;
+    if (!currentLang) return href;
 
     var stripped = stripLangPrefix(href);
     if (stripped === '/') return '/' + currentLang + '/';
