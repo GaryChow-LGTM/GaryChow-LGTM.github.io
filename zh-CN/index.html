@@ -538,7 +538,7 @@
       
       <a class="index-excerpt index-excerpt__noimg" href="/zh-CN/2024/07/31/Kubernetes-nodeAffinity-And-Selector/" target="_self">
         <div>
-          Kubernetes 的亲和性调度K8s的 POD 是自动调度选择某个 NODE 的，默认情况下调度器考虑的是资源足够，并且负载尽量平均，但是有的时候我们需要能够更加细粒度的去控制 POD 的调度，比如控制 POD 是否在同一 NODE 上。这就需要用到 Kubernetes 里面的一个概念：亲和性，亲和性主要分为两类：nodeAffinity和podAffinity。 nodeSelector用
+          Kubernetes 的亲和性调度K8s 中的 POD 是由调度器自动选择某个 NODE 的。默认情况下，调度器会考虑资源是否充足，并尽量让各节点的负载保持均衡。但在某些场景下，我们需要更细粒度地控制 POD 的调度，比如要求多个 POD 调度到同一个 NODE 上。此时就需要借助 Kubernetes 中的一个重要概念：亲和性。亲和性主要分为两大类：nodeAffinity 和 podAffin
         </div>
       </a>
 
@@ -606,7 +606,7 @@
       
       <a class="index-excerpt index-excerpt__noimg" href="/zh-CN/2024/07/31/Kubernetes-Probes/" target="_self">
         <div>
-          Probes Introduction 存活性探测 (Liveness probes): 存活性探针，用于判断容器是不是健康，如果不满足健康条件，那么 Kubelet 将根据 Pod 中设置的 restartPolicy （重启策略）来判断，Pod 是否要进行重启操作。  LivenessProbe 按照配置去探测 ( 进程、或者端口、或者命令执行后是否成功等等)，来判断容器是不是正常。如果探测不
+          探针简介 存活性探测 (Liveness probes): 存活性探针，用于判断容器是不是健康，如果不满足健康条件，那么 Kubelet 将根据 Pod 中设置的 restartPolicy （重启策略）来判断，Pod 是否要进行重启操作。  LivenessProbe 按照配置去探测 ( 进程、或者端口、或者命令执行后是否成功等等)，来判断容器是不是正常。如果探测不到，代表容器不健康（可以配置连
         </div>
       </a>
 
@@ -674,7 +674,7 @@
       
       <a class="index-excerpt index-excerpt__noimg" href="/zh-CN/2024/06/26/systemd-log-too-big/" target="_self">
         <div>
-          Background最近的机器磁盘容量经常报警,发现以下目录的磁盘占用较多 1sudo du -sh ./* --exclude ./proc | sort -rh  | head -n 5  /run/log/journal 是 Systemd 的日志目录，用于存储 Systemd 日志文件。你可以使用 journalctl 工具来管理和清理这些日志文件。以下是清理 Systemd 日志的方法.
+          背景最近的机器磁盘容量经常报警,发现以下目录的磁盘占用较多 1sudo du -sh ./* --exclude ./proc | sort -rh  | head -n 5  /run/log/journal 是 Systemd 的日志目录，用于存储 Systemd 日志文件。你可以使用 journalctl 工具来管理和清理这些日志文件。以下是清理 Systemd 日志的方法. 解决方案1.
         </div>
       </a>
 
@@ -744,7 +744,7 @@
       
       <a class="index-excerpt index-excerpt__noimg" href="/zh-CN/2024/06/25/Kubernetes-FailedScheduling-Debug/" target="_self">
         <div>
-          Background正在使用Kubernetes进行Druid部署,发现更改sts的replica之后pod一直处于pending状态,接下来通过describe查看pod的部署状态,发现以下log 12345678nodeSelector_new:  dedicated: druid-middlemanagertolerations:  - key: &quot;dedicated&quot;
+          背景正在使用 Kubernetes 进行 Druid 部署，发现更改 sts 的 replica 之后 pod 一直处于 pending 状态。接下来通过 describe 查看 pod 的部署状态，发现以下日志。 12345678nodeSelector_new:  dedicated: druid-middlemanagertolerations:  - key: &quot;dedicate
         </div>
       </a>
 
@@ -816,7 +816,7 @@
       
       <a class="index-excerpt index-excerpt__noimg" href="/zh-CN/2024/06/17/HDFS-Decomission-Codes-and-Introduction/" target="_self">
         <div>
-          HDFS Decommission 代码解读与分析HDFS Decommission 背景目前有 200+ 台、1.22PB 的 HDFS3 集群，以及 100- 台、480T 的 HDFS 集群，节点退役（decommission）速度较慢，每小时只能迁移大约 150k 个 block，平均每台节点有约 600k 个 block，单台退役需要约 4 小时。 节点掉线（Node Drop）和节点退
+          HDFS Decommission 代码解读与分析HDFS 节点退役背景目前有 200+ 台、1.22PB 的 HDFS3 集群，以及 100- 台、480T 的 HDFS 集群，节点退役（decommission）速度较慢，每小时只能迁移大约 150k 个 block，平均每台节点有约 600k 个 block，单台退役需要约 4 小时。 节点掉线与节点退役的区别节点退役（Node Decomm
         </div>
       </a>
 

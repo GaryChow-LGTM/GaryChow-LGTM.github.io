@@ -16,15 +16,15 @@
   <meta name="author" content="Gary Chow (Yimin Cao)">
   <meta name="keywords" content="">
   
-    <meta name="description" content="Kubernetes 的亲和性调度K8s的 POD 是自动调度选择某个 NODE 的，默认情况下调度器考虑的是资源足够，并且负载尽量平均，但是有的时候我们需要能够更加细粒度的去控制 POD 的调度，比如控制 POD 是否在同一 NODE 上。这就需要用到 Kubernetes 里面的一个概念：亲和性，亲和性主要分为两类：nodeAffinity和podAffinity。 nodeSelector用">
+    <meta name="description" content="Kubernetes 的亲和性调度K8s 中的 POD 是由调度器自动选择某个 NODE 的。默认情况下，调度器会考虑资源是否充足，并尽量让各节点的负载保持均衡。但在某些场景下，我们需要更细粒度地控制 POD 的调度，比如要求多个 POD 调度到同一个 NODE 上。此时就需要借助 Kubernetes 中的一个重要概念：亲和性。亲和性主要分为两大类：nodeAffinity 和 podAffin">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Kubernetes nodeAffinity &amp; nodeSelector Intros">
 <meta property="og:url" content="https://garychow-lgtm.github.io/zh-CN/2024/07/31/Kubernetes-nodeAffinity-And-Selector/index.html">
 <meta property="og:site_name" content="QQ Zone">
-<meta property="og:description" content="Kubernetes 的亲和性调度K8s的 POD 是自动调度选择某个 NODE 的，默认情况下调度器考虑的是资源足够，并且负载尽量平均，但是有的时候我们需要能够更加细粒度的去控制 POD 的调度，比如控制 POD 是否在同一 NODE 上。这就需要用到 Kubernetes 里面的一个概念：亲和性，亲和性主要分为两类：nodeAffinity和podAffinity。 nodeSelector用">
+<meta property="og:description" content="Kubernetes 的亲和性调度K8s 中的 POD 是由调度器自动选择某个 NODE 的。默认情况下，调度器会考虑资源是否充足，并尽量让各节点的负载保持均衡。但在某些场景下，我们需要更细粒度地控制 POD 的调度，比如要求多个 POD 调度到同一个 NODE 上。此时就需要借助 Kubernetes 中的一个重要概念：亲和性。亲和性主要分为两大类：nodeAffinity 和 podAffin">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2024-07-31T07:18:40.000Z">
-<meta property="article:modified_time" content="2026-04-23T02:53:43.620Z">
+<meta property="article:modified_time" content="2026-04-24T02:51:29.281Z">
 <meta property="article:author" content="Gary Chow (Yimin Cao)">
 <meta property="article:tag" content="Kubernetes">
 <meta name="twitter:card" content="summary_large_image">
@@ -297,34 +297,34 @@
             
               <div class="markdown-body">
                 
-                <h2 id="Kubernetes-的亲和性调度"><a href="#Kubernetes-的亲和性调度" class="headerlink" title="Kubernetes 的亲和性调度"></a>Kubernetes 的亲和性调度</h2><p>K8s的 POD 是自动调度选择某个 NODE 的，默认情况下调度器考虑的是资源足够，并且负载尽量平均，但是有的时候我们需要能够更加细粒度的去控制 POD 的调度，比如控制 POD 是否在同一 NODE 上。这就需要用到 Kubernetes 里面的一个概念：<strong>亲和性</strong>，亲和性主要分为两类：<code>nodeAffinity</code>和<code>podAffinity</code>。</p>
-<h2 id="nodeSelector"><a href="#nodeSelector" class="headerlink" title="nodeSelector"></a>nodeSelector</h2><p>用户可以非常灵活的利用 <code>label</code> 来管理集群中的资源，比如最常见的一个就是 service 通过匹配 <code>label</code> 去选择 POD 的。而 POD 的调度也可以根据节点的 label 进行特定的部署。</p>
-<p>我们可以通过下面的命令查看我们的 node 的 label：</p>
+                <h2 id="Kubernetes-的亲和性调度"><a href="#Kubernetes-的亲和性调度" class="headerlink" title="Kubernetes 的亲和性调度"></a>Kubernetes 的亲和性调度</h2><p>K8s 中的 POD 是由调度器自动选择某个 NODE 的。默认情况下，调度器会考虑资源是否充足，并尽量让各节点的负载保持均衡。但在某些场景下，我们需要更细粒度地控制 POD 的调度，比如要求多个 POD 调度到同一个 NODE 上。此时就需要借助 Kubernetes 中的一个重要概念：<strong>亲和性</strong>。亲和性主要分为两大类：<code>nodeAffinity</code> 和 <code>podAffinity</code>。</p>
+<h2 id="nodeSelector"><a href="#nodeSelector" class="headerlink" title="nodeSelector"></a>nodeSelector</h2><p>用户可以非常灵活地利用 <code>label</code> 来管理集群中的资源。其中最常见的场景之一，就是 Service 通过匹配 <code>label</code> 来选择对应的 POD。POD 的调度也可以依据节点的 label 来完成特定的部署。</p>
+<p>我们可以通过下面的命令查看节点的 label：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs bash">$ kubectl get nodes --show-labels<br>NAME            STATUS    ROLES     AGE       VERSION   LABELS<br>192.168.1.140   Ready     &lt;none&gt;    42d       v1.8.1    beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/hostname=192.168.1.140<br>192.168.1.161   Ready     &lt;none&gt;    118d      v1.8.1    beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/cluster-service=<span class="hljs-literal">true</span>,kubernetes.io/hostname=192.168.1.161<br>192.168.1.170   Ready     &lt;none&gt;    118d      v1.8.1    beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/cluster-service=<span class="hljs-literal">true</span>,kubernetes.io/hostname=192.168.1.170<br>192.168.1.172   Ready     &lt;none&gt;    114d      v1.8.1    beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/cluster-service=<span class="hljs-literal">true</span>,kubernetes.io/hostname=192.168.1.172<br><br></code></pre></td></tr></table></figure>
 
-<p>现在我们先给节点<strong>192.168.1.140</strong>增加一个<code>source=qikqiak</code>的标签，命令如下：</p>
+<p>现在我们先给节点 <strong>192.168.1.140</strong> 打上一个 <code>source=qikqiak</code> 的标签，命令如下：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">$ kubectl label nodes 192.168.1.140 <span class="hljs-built_in">source</span>=qikqiak<br>node <span class="hljs-string">&quot;192.168.1.140&quot;</span> labeled<br><br></code></pre></td></tr></table></figure>
 
-<p>我们可以通过上面的<code>--show-labels</code>参数可以查看上述标签是否生效。当 node 被打上了相关标签后，在调度的时候就可以使用这些标签了，只需要在 POD 的 spec 字段中添加<code>nodeSelector</code>字段，里面是我们需要被调度的节点的 label。例如，下面是我们之前的一个默认的 busybox POD 的 YAML 文件：</p>
+<p>随后可以通过前面提到的 <code>--show-labels</code> 参数确认上述标签是否生效。当节点被打上相关标签后，在调度时就可以使用这些标签了，只需在 POD 的 spec 字段中添加 <code>nodeSelector</code> 字段，里面填写希望调度到的目标节点的 label 即可。例如，下面是一个默认的 busybox POD 的 YAML 文件：</p>
 <figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">apiVersion:</span> <span class="hljs-string">v1</span><br><span class="hljs-attr">kind:</span> <span class="hljs-string">Pod</span><br><span class="hljs-attr">metadata:</span><br>  <span class="hljs-attr">labels:</span><br>    <span class="hljs-attr">app:</span> <span class="hljs-string">busybox-pod</span><br>  <span class="hljs-attr">name:</span> <span class="hljs-string">test-busybox</span><br><span class="hljs-attr">spec:</span><br>  <span class="hljs-attr">containers:</span><br>  <span class="hljs-bullet">-</span> <span class="hljs-attr">command:</span><br>    <span class="hljs-bullet">-</span> <span class="hljs-string">sleep</span><br>    <span class="hljs-bullet">-</span> <span class="hljs-string">&quot;3600&quot;</span><br>    <span class="hljs-attr">image:</span> <span class="hljs-string">busybox</span><br>    <span class="hljs-attr">imagePullPolicy:</span> <span class="hljs-string">Always</span><br>    <span class="hljs-attr">name:</span> <span class="hljs-string">test-busybox</span><br><br></code></pre></td></tr></table></figure>
 
-<p>然后我需要让上面的 POD 被调度到140的节点上，那么最简单的方法就是去匹配140上面的 label，如下：</p>
+<p>如果希望上面的 POD 被调度到 140 节点，最简单的做法就是匹配 140 节点上的 label，如下所示：</p>
 <figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">apiVersion:</span> <span class="hljs-string">v1</span><br><span class="hljs-attr">kind:</span> <span class="hljs-string">Pod</span><br><span class="hljs-attr">metadata:</span><br>  <span class="hljs-attr">labels:</span><br>    <span class="hljs-attr">app:</span> <span class="hljs-string">busybox-pod</span><br>  <span class="hljs-attr">name:</span> <span class="hljs-string">test-busybox</span><br><span class="hljs-attr">spec:</span><br>  <span class="hljs-attr">containers:</span><br>  <span class="hljs-bullet">-</span> <span class="hljs-attr">command:</span><br>    <span class="hljs-bullet">-</span> <span class="hljs-string">sleep</span><br>    <span class="hljs-bullet">-</span> <span class="hljs-string">&quot;3600&quot;</span><br>    <span class="hljs-attr">image:</span> <span class="hljs-string">busybox</span><br>    <span class="hljs-attr">imagePullPolicy:</span> <span class="hljs-string">Always</span><br>    <span class="hljs-attr">name:</span> <span class="hljs-string">test-busybox</span><br>  <span class="hljs-attr">nodeSelector:</span><br>    <span class="hljs-attr">source:</span> <span class="hljs-string">qikqiak</span><br><br></code></pre></td></tr></table></figure>
 
-<p>然后我们可以通过 describe 命令查看调度结果：</p>
+<p>然后可以通过 describe 命令查看调度结果：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs bash">$ kubectl describe pod test-busybox<br>......<br>Events:<br>  Type    Reason                 Age   From                    Message<br>  ----    ------                 ----  ----                    -------<br>  Normal  Scheduled              49s   default-scheduler       Successfully assigned test-busybox to 192.168.1.140<br>  Normal  SuccessfulMountVolume  49s   kubelet, 192.168.1.140  MountVolume.SetUp succeeded <span class="hljs-keyword">for</span> volume <span class="hljs-string">&quot;default-token-hmpbz&quot;</span><br>  Normal  Pulling                49s   kubelet, 192.168.1.140  pulling image <span class="hljs-string">&quot;busybox&quot;</span><br>  Normal  Pulled                 41s   kubelet, 192.168.1.140  Successfully pulled image <span class="hljs-string">&quot;busybox&quot;</span><br>  Normal  Created                41s   kubelet, 192.168.1.140  Created container<br>  Normal  Started                41s   kubelet, 192.168.1.140  Started container<br><br></code></pre></td></tr></table></figure>
 
-<p>我们可以看到 Events 下面的信息，上面的 POD 被正确的调度到了140节点。通过上面的例子我们可以感受到<code>nodeSelector</code>的方式比较直观，但是还够灵活，控制粒度偏大，下面我们再看另外一种更加灵活的方式：<code>nodeAffinity</code>。</p>
-<h2 id="nodeAffinity"><a href="#nodeAffinity" class="headerlink" title="nodeAffinity"></a>nodeAffinity</h2><p><code>nodeAffinity</code>就是节点亲和性，相对应的是<code>Anti-Affinity</code>，就是反亲和性，这种方法比上面的<code>nodeSelector</code>更加灵活，它可以进行一些简单的逻辑组合了，不只是简单的相等匹配。 调度可以分成软策略和硬策略两种方式，软策略就是如果你没有满足调度要求的节点的话，POD 就会忽略这条规则，继续完成调度过程，说白了就是<strong>满足条件最好了，没有的话也无所谓了</strong>的策略；而硬策略就比较强硬了，如果没有满足条件的节点的话，就不断重试直到满足条件为止，简单说就是<strong>你必须满足我的要求，不然我就不干</strong>的策略。 </p>
-<p><code>nodeAffinity</code>分为以下两种策略：</p>
+<p>从 Events 信息可以看到，上面的 POD 被正确地调度到了 140 节点。通过这个示例可以感受到，<code>nodeSelector</code> 的方式比较直观，但还不够灵活，控制粒度偏大。下面我们再看一种更加灵活的方式：<code>nodeAffinity</code>。</p>
+<h2 id="nodeAffinity"><a href="#nodeAffinity" class="headerlink" title="nodeAffinity"></a>nodeAffinity</h2><p><code>nodeAffinity</code> 即节点亲和性，与之相对应的是 <code>Anti-Affinity</code>，也就是反亲和性。相较于前面的 <code>nodeSelector</code>，这种方式更加灵活，支持一些简单的逻辑组合，而不仅仅是简单的相等匹配。调度可以分为软策略和硬策略两种：软策略指的是如果没有满足条件的节点，POD 也会忽略这条规则继续完成调度，简而言之就是<strong>满足条件最好，没有也无所谓</strong>的策略；硬策略则比较强硬，如果没有满足条件的节点，就会一直重试，直到满足条件为止，简而言之就是<strong>必须满足，否则就不调度</strong>的策略。</p>
+<p><code>nodeAffinity</code> 分为以下两种策略：</p>
 <ol>
 <li><code>preferredDuringSchedulingIgnoredDuringExecution</code> 软策略</li>
 <li><code>requiredDuringSchedulingIgnoredDuringExecution</code> 硬策略。</li>
 </ol>
-<p>如下例子：（<strong>test-node-affinity.yaml</strong>）</p>
+<p>示例如下（<strong>test-node-affinity.yaml</strong>）：</p>
 <figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">apiVersion:</span> <span class="hljs-string">v1</span><br><span class="hljs-attr">kind:</span> <span class="hljs-string">Pod</span><br><span class="hljs-attr">metadata:</span><br>  <span class="hljs-attr">name:</span> <span class="hljs-string">with-node-affinity</span><br>  <span class="hljs-attr">labels:</span><br>    <span class="hljs-attr">app:</span> <span class="hljs-string">node-affinity-pod</span><br><span class="hljs-attr">spec:</span><br>  <span class="hljs-attr">containers:</span><br>  <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">with-node-affinity</span><br>    <span class="hljs-attr">image:</span> <span class="hljs-string">nginx</span><br>  <span class="hljs-attr">affinity:</span><br>    <span class="hljs-attr">nodeAffinity:</span><br>      <span class="hljs-attr">requiredDuringSchedulingIgnoredDuringExecution:</span><br>        <span class="hljs-attr">nodeSelectorTerms:</span><br>        <span class="hljs-bullet">-</span> <span class="hljs-attr">matchExpressions:</span><br>          <span class="hljs-bullet">-</span> <span class="hljs-attr">key:</span> <span class="hljs-string">kubernetes.io/hostname</span><br>            <span class="hljs-attr">operator:</span> <span class="hljs-string">NotIn</span><br>            <span class="hljs-attr">values:</span><br>            <span class="hljs-bullet">-</span> <span class="hljs-number">192.168</span><span class="hljs-number">.1</span><span class="hljs-number">.140</span><br>            <span class="hljs-bullet">-</span> <span class="hljs-number">192.168</span><span class="hljs-number">.1</span><span class="hljs-number">.161</span><br>      <span class="hljs-attr">preferredDuringSchedulingIgnoredDuringExecution:</span><br>      <span class="hljs-bullet">-</span> <span class="hljs-attr">weight:</span> <span class="hljs-number">1</span><br>        <span class="hljs-attr">preference:</span><br>          <span class="hljs-attr">matchExpressions:</span><br>          <span class="hljs-bullet">-</span> <span class="hljs-attr">key:</span> <span class="hljs-string">source</span><br>            <span class="hljs-attr">operator:</span> <span class="hljs-string">In</span><br>            <span class="hljs-attr">values:</span><br>            <span class="hljs-bullet">-</span> <span class="hljs-string">qikqiak</span><br><br></code></pre></td></tr></table></figure>
 
-<p>上面这个 POD 首先是要求 POD 不能运行在140和161两个节点上，如果有个节点满足<code>source=qikqiak</code>的话就优先调度到这个节点上，同样的我们可以使用<code>descirbe</code>命令查看具体的调度情况是否满足我们的要求。这里的匹配逻辑是 label 的值在某个列表中，现在<code>Kubernetes</code>提供的操作符有下面的几种：</p>
+<p>上面这个 POD 首先要求不能运行在 140 和 161 两个节点上；如果有某个节点满足 <code>source=qikqiak</code>，则优先调度到该节点。同样，我们可以使用 <code>describe</code> 命令查看具体的调度情况是否符合预期。这里的匹配逻辑是：label 的值是否在某个列表中。目前 <code>Kubernetes</code> 提供的操作符有以下几种：</p>
 <ul>
 <li>In：label 的值在某个列表中</li>
 <li>NotIn：label 的值不在某个列表中</li>
@@ -334,23 +334,23 @@
 <li>DoesNotExist：某个 label 不存在</li>
 </ul>
 <blockquote>
-<p>如果<code>nodeSelectorTerms</code>下面有多个选项的话，满足任何一个条件就可以了；如果<code>matchExpressions</code>有多个选项的话，则必须同时满足这些条件才能正常调度 POD。</p>
+<p>如果 <code>nodeSelectorTerms</code> 下面存在多个选项，只需满足其中任意一个条件即可；如果 <code>matchExpressions</code> 下面存在多个选项，则必须同时满足所有条件才能正常调度 POD。</p>
 </blockquote>
-<h2 id="podAffinity"><a href="#podAffinity" class="headerlink" title="podAffinity"></a>podAffinity</h2><p>上面两种方式都是让 POD 去选择节点的，有的时候我们也希望能够根据 POD 之间的关系进行调度，<code>Kubernetes</code>在1.4版本引入的<code>podAffinity</code>概念就可以实现我们这个需求。</p>
-<p>和<code>nodeAffinity</code>类似，<code>podAffinity</code>也有<code>requiredDuringSchedulingIgnoredDuringExecution</code>和 <code>preferredDuringSchedulingIgnoredDuringExecution</code>两种调度策略，唯一不同的是如果要使用互斥性，我们需要使用<code>podAntiAffinity</code>字段。 如下例子，我们希望<code>with-pod-affinity</code>和<code>busybox-pod</code>能够就近部署，而不希望和<code>node-affinity-pod</code>部署在同一个拓扑域下面：（<strong>test-pod-affinity.yaml</strong>）</p>
+<h2 id="podAffinity"><a href="#podAffinity" class="headerlink" title="podAffinity"></a>podAffinity</h2><p>上面两种方式都是让 POD 选择节点，但有时我们希望根据 POD 之间的关系进行调度。<code>Kubernetes</code> 在 1.4 版本引入的 <code>podAffinity</code> 就可以满足这种需求。</p>
+<p>与 <code>nodeAffinity</code> 类似，<code>podAffinity</code> 同样支持 <code>requiredDuringSchedulingIgnoredDuringExecution</code> 和 <code>preferredDuringSchedulingIgnoredDuringExecution</code> 两种调度策略。唯一的区别在于，如果要实现互斥关系，需要使用 <code>podAntiAffinity</code> 字段。例如下面这个示例，我们希望 <code>with-pod-affinity</code> 与 <code>busybox-pod</code> 就近部署，同时不希望它与 <code>node-affinity-pod</code> 部署在同一个拓扑域下（<strong>test-pod-affinity.yaml</strong>）：</p>
 <figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">apiVersion:</span> <span class="hljs-string">v1</span><br><span class="hljs-attr">kind:</span> <span class="hljs-string">Pod</span><br><span class="hljs-attr">metadata:</span><br>  <span class="hljs-attr">name:</span> <span class="hljs-string">with-pod-affinity</span><br>  <span class="hljs-attr">labels:</span><br>    <span class="hljs-attr">app:</span> <span class="hljs-string">pod-affinity-pod</span><br><span class="hljs-attr">spec:</span><br>  <span class="hljs-attr">containers:</span><br>  <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">with-pod-affinity</span><br>    <span class="hljs-attr">image:</span> <span class="hljs-string">nginx</span><br>  <span class="hljs-attr">affinity:</span><br>    <span class="hljs-attr">podAffinity:</span><br>      <span class="hljs-attr">requiredDuringSchedulingIgnoredDuringExecution:</span><br>      <span class="hljs-bullet">-</span> <span class="hljs-attr">labelSelector:</span><br>          <span class="hljs-attr">matchExpressions:</span><br>          <span class="hljs-bullet">-</span> <span class="hljs-attr">key:</span> <span class="hljs-string">app</span><br>            <span class="hljs-attr">operator:</span> <span class="hljs-string">In</span><br>            <span class="hljs-attr">values:</span><br>            <span class="hljs-bullet">-</span> <span class="hljs-string">busybox-pod</span><br>        <span class="hljs-attr">topologyKey:</span> <span class="hljs-string">kubernetes.io/hostname</span><br>    <span class="hljs-attr">podAntiAffinity:</span><br>      <span class="hljs-attr">preferredDuringSchedulingIgnoredDuringExecution:</span><br>      <span class="hljs-bullet">-</span> <span class="hljs-attr">weight:</span> <span class="hljs-number">1</span><br>        <span class="hljs-attr">podAffinityTerm:</span><br>          <span class="hljs-attr">labelSelector:</span><br>            <span class="hljs-attr">matchExpressions:</span><br>            <span class="hljs-bullet">-</span> <span class="hljs-attr">key:</span> <span class="hljs-string">app</span><br>              <span class="hljs-attr">operator:</span> <span class="hljs-string">In</span><br>              <span class="hljs-attr">values:</span><br>              <span class="hljs-bullet">-</span> <span class="hljs-string">node-affinity-pod</span><br>          <span class="hljs-attr">topologyKey:</span> <span class="hljs-string">kubernetes.io/hostname</span><br><br></code></pre></td></tr></table></figure>
 
-<p>上面这个例子中的 POD 需要调度到某个指定的主机上，至少有一个节点上运行了这样的 POD：这个 POD 有一个<code>app=busybox-pod</code>的 label。<code>podAntiAffinity</code>则是希望最好不要调度到这样的节点：这个节点上运行了某个 POD，而这个 POD 有<code>app=node-affinity-pod</code>的 label。根据前面两个 POD 的定义，我们可以预见上面这个 POD 应该会被调度到140的节点上，因为<code>busybox-pod</code>被调度到了140节点，而<code>node-affinity-pod</code>被调度到了140以为的节点，正好满足上面的需求。通过<code>describe</code>查看：</p>
+<p>上述示例中的 POD 需要被调度到这样一台主机上：至少存在一个正在运行的 POD，其带有 <code>app=busybox-pod</code> 的 label。而 <code>podAntiAffinity</code> 则表示最好不要调度到以下这种节点：该节点上运行的某个 POD 带有 <code>app=node-affinity-pod</code> 的 label。结合前面两个 POD 的定义可以预见，这个 POD 应当会被调度到 140 节点，因为 <code>busybox-pod</code> 已经被调度到了 140 节点，而 <code>node-affinity-pod</code> 被调度到了 140 以外的节点，正好满足上面的需求。通过 <code>describe</code> 进行查看：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs bash">$ kubectl describe pod with-pod-affinity<br>......<br>Events:<br>  Type    Reason                 Age   From                    Message<br>  ----    ------                 ----  ----                    -------<br>  Normal  Scheduled              8s    default-scheduler       Successfully assigned with-pod-affinity to 192.168.1.140<br>  Normal  SuccessfulMountVolume  7s    kubelet, 192.168.1.140  MountVolume.SetUp succeeded <span class="hljs-keyword">for</span> volume <span class="hljs-string">&quot;default-token-lcl77&quot;</span><br>  Normal  Pulling                7s    kubelet, 192.168.1.140  pulling image <span class="hljs-string">&quot;nginx&quot;</span><br><br></code></pre></td></tr></table></figure>
 
-<p>上面的事件信息也验证了我们的想法。</p>
+<p>上面的事件信息也验证了我们的预期。</p>
 <blockquote>
-<p>在<code>labelSelector</code>和 <code>topologyKey</code>的同级，还可以定义 namespaces 列表，表示匹配哪些 namespace 里面的 pod，默认情况下，会匹配定义的 pod 所在的 namespace；如果定义了这个字段，但是它的值为空，则匹配所有的 namespaces。</p>
+<p>在 <code>labelSelector</code> 和 <code>topologyKey</code> 的同级，还可以定义 namespaces 列表，用于指定需要匹配哪些 namespace 中的 pod。默认情况下，会匹配当前所定义 pod 所在的 namespace；如果显式定义了该字段但其值为空，则会匹配所有的 namespaces。</p>
 </blockquote>
-<p>查看上面我们定义的3个 POD 结果：</p>
+<p>查看上面定义的 3 个 POD 的运行结果：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs bash">$ kubectl get po -o wide<br>NAME                 READY     STATUS    RESTARTS   AGE       IP             NODE<br>test-busybox         1/1       Running   0          8m        172.30.95.18   192.168.1.140<br>with-node-affinity   1/1       Running   0          10m       172.30.81.25   192.168.1.172<br>with-pod-affinity    1/1       Running   0          8m        172.30.95.17   192.168.1.140<br><br></code></pre></td></tr></table></figure>
 
-<p>亲和性&#x2F;反亲和性调度策略比较如下：</p>
+<p>亲和性与反亲和性调度策略对比如下：</p>
 <table>
 <thead>
 <tr>
@@ -373,28 +373,28 @@
 <td>POD</td>
 <td>In, NotIn, Exists, DoesNotExist</td>
 <td>是</td>
-<td>POD与指定POD同一拓扑域</td>
+<td>POD 与指定 POD 同一拓扑域</td>
 </tr>
 <tr>
 <td>podAnitAffinity</td>
 <td>POD</td>
 <td>In, NotIn, Exists, DoesNotExist</td>
 <td>是</td>
-<td>POD与指定POD不在同一拓扑域</td>
+<td>POD 与指定 POD 不在同一拓扑域</td>
 </tr>
 </tbody></table>
-<h2 id="污点（Taints）与容忍（tolerations）"><a href="#污点（Taints）与容忍（tolerations）" class="headerlink" title="污点（Taints）与容忍（tolerations）"></a>污点（Taints）与容忍（tolerations）</h2><p>对于<code>nodeAffinity</code>无论是硬策略还是软策略方式，都是调度 POD 到预期节点上，而<code>Taints</code>恰好与之相反，如果一个节点标记为 Taints ，除非 POD 也被标识为可以容忍污点节点，否则该 Taints 节点不会被调度pod。</p>
-<p>比如用户希望把 Master 节点保留给 Kubernetes 系统组件使用，或者把一组具有特殊资源预留给某些 POD，则污点就很有用了，POD 不会再被调度到 taint 标记过的节点。taint 标记节点举例如下：</p>
+<h2 id="污点（Taints）与容忍（tolerations）"><a href="#污点（Taints）与容忍（tolerations）" class="headerlink" title="污点（Taints）与容忍（tolerations）"></a>污点（Taints）与容忍（tolerations）</h2><p>对于 <code>nodeAffinity</code>，无论是硬策略还是软策略，目的都是把 POD 调度到预期的节点上。而 <code>Taints</code> 恰好相反，如果一个节点被标记为 Taints，除非某个 POD 显式表示可以容忍该污点，否则该 Taints 节点不会被调度 POD。</p>
+<p>比如用户希望将 Master 节点保留给 Kubernetes 系统组件使用，或者将一组具有特殊资源的节点预留给特定的 POD，此时污点就非常有用了，POD 不会再被调度到带有 taint 标记的节点上。taint 标记节点的示例如下：</p>
 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs bash">$ kubectl taint nodes 192.168.1.40 key=value:NoSchedule<br>node <span class="hljs-string">&quot;192.168.1.40&quot;</span> tainted<br><br></code></pre></td></tr></table></figure>
 
-<p>如果仍然希望某个 POD 调度到 taint 节点上，则必须在 Spec 中做出<code>Toleration</code>定义，才能调度到该节点，举例如下：</p>
+<p>如果仍然希望某个 POD 调度到带有 taint 的节点上，就必须在 Spec 中做出 <code>Toleration</code> 定义，才能将其调度到该节点，示例如下：</p>
 <figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">tolerations:</span><br><span class="hljs-bullet">-</span> <span class="hljs-attr">key:</span> <span class="hljs-string">&quot;key&quot;</span><br><span class="hljs-attr">operator:</span> <span class="hljs-string">&quot;Equal&quot;</span><br><span class="hljs-attr">value:</span> <span class="hljs-string">&quot;value&quot;</span><br><span class="hljs-attr">effect:</span> <span class="hljs-string">&quot;NoSchedule&quot;</span><br><br></code></pre></td></tr></table></figure>
 
-<p>effect 共有三个可选项，可按实际需求进行设置：</p>
+<p>effect 共有三个可选值，可按实际需求进行设置：</p>
 <ol>
-<li><code>NoSchedule</code>：除非具有匹配的容忍度规约，否则新的 Pod 不会被调度到带有污点的节点上。 当前正在节点上运行的 Pod 不会被驱逐。</li>
-<li><code>PreferNoSchedule</code>：PreferNoSchedule 是“偏好”或“软性”的 NoSchedule。 控制平面将尝试避免将不能容忍污点的 Pod 调度到的节点上，但不能保证完全避免。</li>
-<li><code>NoExecute</code>：该选项意味着一旦 Taint 生效，如该节点内正在运行的 POD 没有对应 Tolerate 设置，会直接被逐出。</li>
+<li><code>NoSchedule</code>：除非具有匹配的容忍度规约，否则新的 Pod 不会被调度到带有污点的节点上。当前正在该节点上运行的 Pod 不会被驱逐。</li>
+<li><code>PreferNoSchedule</code>：PreferNoSchedule 是 “偏好” 或 “软性” 的 NoSchedule。控制平面会尝试避免将不能容忍污点的 Pod 调度到该节点上，但无法完全保证。</li>
+<li><code>NoExecute</code>：该选项意味着一旦 Taint 生效，如果该节点上正在运行的 POD 没有对应的 Tolerate 设置，将会被直接驱逐。</li>
 </ol>
 <h2 id="Refer"><a href="#Refer" class="headerlink" title="Refer"></a>Refer</h2><ul>
 <li><a target="_blank" rel="noopener" href="https://kubernetes.io/zh-cn/docs/concepts/scheduling-eviction/taint-and-toleration/">https://kubernetes.io/zh-cn/docs/concepts/scheduling-eviction/taint-and-toleration/</a></li>
@@ -499,9 +499,9 @@
                   <article class="post-prev col-6">
                     
                     
-                      <a href="/en/2024/07/31/Kubernetes-nodeAffinity-And-Selector/" title="Kubernetes nodeAffinity &amp; nodeSelector Intros">
+                      <a href="/zh-CN/2024/07/31/spark-history-debug/" title="Spark HistoryServer 介绍与故障排查">
                         <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">Kubernetes nodeAffinity &amp; nodeSelector Intros</span>
+                        <span class="hidden-mobile">Spark HistoryServer 介绍与故障排查</span>
                         <span class="visible-mobile">上一篇</span>
                       </a>
                     
@@ -509,8 +509,8 @@
                   <article class="post-next col-6">
                     
                     
-                      <a href="/en/2024/07/31/Kubernetes-Probes/" title="Introduction to Kubernetes Probes">
-                        <span class="hidden-mobile">Introduction to Kubernetes Probes</span>
+                      <a href="/zh-CN/2024/07/31/Kubernetes-Probes/" title="Kubernetes Probes Intros">
+                        <span class="hidden-mobile">Kubernetes Probes Intros</span>
                         <span class="visible-mobile">下一篇</span>
                         <i class="iconfont icon-arrowright"></i>
                       </a>

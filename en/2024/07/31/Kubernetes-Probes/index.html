@@ -24,7 +24,7 @@
 <meta property="og:description" content="Probes Introduction Liveness probes: Liveness probes are used to determine whether a container is healthy. If the health condition is not met, kubelet will decide whether to restart the Pod based on t">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2024-07-31T06:53:07.000Z">
-<meta property="article:modified_time" content="2026-04-24T02:35:47.858Z">
+<meta property="article:modified_time" content="2026-04-24T02:51:05.901Z">
 <meta property="article:author" content="Gary Chow (Yimin Cao)">
 <meta property="article:tag" content="Kubernetes">
 <meta name="twitter:card" content="summary_large_image">
@@ -244,7 +244,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          193 words
+          190 words
         
       </span>
     
@@ -316,9 +316,6 @@
 <p>But is this really the order? The official documentation says otherwise, stating:</p>
 <blockquote>
 <p>Caution: Liveness probes do not wait for readiness probes to succeed. If you want to wait before executing a liveness probe you should use initialDelaySeconds or a startupProbe.</p>
-</blockquote>
-<blockquote>
-<p>livenessProbe does not wait for readinessProbe to succeed. If you want to wait before executing livenessProbe, you should use initialDelaySeconds or startupProbe.</p>
 </blockquote>
 <p>So the actual order is: <code>startupProbe --&gt; readinessProbe(livenessProbe)</code></p>
 <p>readinessProbe and livenessProbe run asynchronously and concurrently.</p>
@@ -447,7 +444,7 @@
                   <article class="post-prev col-6">
                     
                     
-                      <a href="/zh-CN/2024/07/31/Kubernetes-nodeAffinity-And-Selector/" title="Kubernetes nodeAffinity &amp; nodeSelector Intros">
+                      <a href="/en/2024/07/31/Kubernetes-nodeAffinity-And-Selector/" title="Kubernetes nodeAffinity &amp; nodeSelector Intros">
                         <i class="iconfont icon-arrowleft"></i>
                         <span class="hidden-mobile">Kubernetes nodeAffinity &amp; nodeSelector Intros</span>
                         <span class="visible-mobile">Previous</span>
@@ -457,8 +454,8 @@
                   <article class="post-next col-6">
                     
                     
-                      <a href="/zh-CN/2024/07/31/Kubernetes-Probes/" title="Kubernetes Probes Intros">
-                        <span class="hidden-mobile">Kubernetes Probes Intros</span>
+                      <a href="/en/2024/06/26/systemd-log-too-big/" title="Debugging Oversized Systemd Journal Logs">
+                        <span class="hidden-mobile">Debugging Oversized Systemd Journal Logs</span>
                         <span class="visible-mobile">Next</span>
                         <i class="iconfont icon-arrowright"></i>
                       </a>
