@@ -1,0 +1,733 @@
+
+
+<!DOCTYPE html>
+<html lang="en,zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/icons8-ninja-96.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Gary Chow (Yimin Cao)">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="Probes Introduction Liveness probes: Liveness probes are used to determine whether a container is healthy. If the health condition is not met, kubelet will decide whether to restart the Pod based on t">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Introduction to Kubernetes Probes">
+<meta property="og:url" content="https://garychow-lgtm.github.io/en/2024/07/31/Kubernetes-Probes/index.html">
+<meta property="og:site_name" content="QQ Zone">
+<meta property="og:description" content="Probes Introduction Liveness probes: Liveness probes are used to determine whether a container is healthy. If the health condition is not met, kubelet will decide whether to restart the Pod based on t">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2024-07-31T06:53:07.000Z">
+<meta property="article:modified_time" content="2026-04-24T02:35:47.858Z">
+<meta property="article:author" content="Gary Chow (Yimin Cao)">
+<meta property="article:tag" content="Kubernetes">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>Introduction to Kubernetes Probes - QQ Zone</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"garychow-lgtm.github.io","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.2.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>QQ Zone</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>Home</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>Archives</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>Categories</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>Tags</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/en/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>About</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/en/" target="_self">
+                
+                <span>EN</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/zh-CN/" target="_self">
+                
+                <span>中文</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="Introduction to Kubernetes Probes"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2024-07-31 14:53" pubdate>
+          July 31, 2024 pm
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          193 words
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          2 mins
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">Introduction to Kubernetes Probes</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h2 id="Probes-Introduction"><a href="#Probes-Introduction" class="headerlink" title="Probes Introduction"></a>Probes Introduction</h2><ul>
+<li><p><strong>Liveness probes:</strong> Liveness probes are used to determine whether a container is healthy. If the health condition is not met, kubelet will decide whether to restart the Pod based on the <code>restartPolicy</code> configured on the Pod.</p>
+<blockquote>
+<p>A LivenessProbe performs checks according to its configuration (inspecting a process, a port, or whether a command executes successfully, etc.) to determine whether the container is functioning normally. If the probe fails (you can configure how many consecutive failures are required to mark the container as unhealthy), kubelet will kill the container and handle it according to the container’s restart policy. If no liveness probe is configured, the container is considered to have passed (Success) by default after startup — i.e., the probe always returns Success. Once Success is returned, the Pod status is RUNNING.</p>
+</blockquote>
+</li>
+<li><p><strong>Readiness probes:</strong> Readiness probes are used to determine whether the program inside the container is alive (or healthy). Only when the program (service) is functioning normally will the container start accepting external network traffic (startup complete and ready).</p>
+<blockquote>
+<p>After the container starts, probing is performed according to the ReadinessProbe configuration. When no issues are detected, the result is Success. The Pod’s READY status becomes true, changing from 0&#x2F;1 to 1&#x2F;1. If probing fails, it remains 0&#x2F;1 with status false. If no readiness probe is configured, the container is considered Success by default after startup. The relationships among this Pod, the Service resource associated with this Pod, and the EndPoint will also be set based on the Pod’s Ready status. If the Pod’s Ready state changes to false during operation, the system will automatically remove the Pod from the EndPoint list associated with the Service. At that point, when the Service resource receives a GET request, kube-proxy will definitely not route traffic into this Pod — this mechanism prevents traffic from being forwarded to unavailable Pods. If the Pod returns to the Ready state, it will be added back to the Endpoint list, and kube-proxy will probabilistically route traffic to this Pod through its load-balancing mechanism.</p>
+</blockquote>
+</li>
+<li><p><strong>Startup Probes:</strong> For legacy applications that need a longer startup time, when you neither want to restart the application nor want requests to be routed in, you can configure a startup probe to grant sufficient startup time to ensure the application starts successfully.</p>
+</li>
+</ul>
+<h2 id="Execution-Order"><a href="#Execution-Order" class="headerlink" title="Execution Order"></a>Execution Order</h2><p>You can customize whether these checks are executed when a Pod starts. If not configured, all checks default to passing.</p>
+<p>If configured, the order is: <code>startupProbe --&gt; readinessProbe --&gt; livenessProbe</code></p>
+<p>But is this really the order? The official documentation says otherwise, stating:</p>
+<blockquote>
+<p>Caution: Liveness probes do not wait for readiness probes to succeed. If you want to wait before executing a liveness probe you should use initialDelaySeconds or a startupProbe.</p>
+</blockquote>
+<blockquote>
+<p>livenessProbe does not wait for readinessProbe to succeed. If you want to wait before executing livenessProbe, you should use initialDelaySeconds or startupProbe.</p>
+</blockquote>
+<p>So the actual order is: <code>startupProbe --&gt; readinessProbe(livenessProbe)</code></p>
+<p>readinessProbe and livenessProbe run asynchronously and concurrently.</p>
+<h2 id="LivenessProbe-ReadinessProbe-Usage"><a href="#LivenessProbe-ReadinessProbe-Usage" class="headerlink" title="LivenessProbe &amp; ReadinessProbe Usage"></a>LivenessProbe &amp; ReadinessProbe Usage</h2><h3 id="Probe-Methods"><a href="#Probe-Methods" class="headerlink" title="Probe Methods"></a>Probe Methods</h3><p>Both LivenessProbe and ReadinessProbe support the following three probing methods:</p>
+<ul>
+<li>ExecAction: Execute a specified command inside the container. If the command succeeds with exit code 0, the probe succeeds.</li>
+<li>HTTPGetAction: Invoke the HTTP GET method via the container’s IP address, port number, and path. If the response status code is greater than or equal to 200 and less than 400, the container is considered healthy.</li>
+<li>TCPSocketAction: Perform a TCP check via the container’s IP address and port number. If a TCP connection can be established, the container is considered healthy.</li>
+</ul>
+<h2 id="Probe-Parameters"><a href="#Probe-Parameters" class="headerlink" title="Probe Parameters"></a>Probe Parameters</h2><p>Related attributes of the LivenessProbe and ReadinessProbe probes.<br>A Probe has many optional fields that can be used to more precisely control the behavior of Liveness and Readiness probes:</p>
+<ul>
+<li><p>initialDelaySeconds: Number of seconds to wait after the container starts before the probe begins working. Unit: “seconds”. Default is 0, minimum is 0.</p>
+</li>
+<li><p>periodSeconds: The interval at which probing is performed (in seconds). Default is 10s, unit “seconds”, minimum is 1.</p>
+</li>
+<li><p>timeoutSeconds: The timeout for waiting for a response after the probe issues a check request. Default is 1s, unit “seconds”, minimum is 1.</p>
+</li>
+<li><p>successThreshold: The minimum number of consecutive successes required for the probe to be considered successful after having failed. Default is 1, in Liveness probes it must be 1, minimum is 1.</p>
+</li>
+<li><p>failureThreshold: The number of retries before a probe is considered failed. After a certain number of retries, it is considered failed. In readiness probes, the Pod will be marked as not ready. Default is 3, minimum is 1.</p>
+<blockquote>
+<p>Tips: initialDelaySeconds does not actually need to be configured in ReadinessProbe. Without configuration, by default ReadinessProbe begins probing immediately after the Pod starts. Once the service has started and the check passes, the READY status naturally becomes normal.</p>
+</blockquote>
+</li>
+</ul>
+<h2 id="Example"><a href="#Example" class="headerlink" title="Example"></a>Example</h2><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-attr">apiVersion:</span> <span class="hljs-string">v1</span><br><span class="hljs-attr">kind:</span> <span class="hljs-string">Pod</span><br><span class="hljs-attr">metadata:</span><br>    <span class="hljs-attr">name:</span> <span class="hljs-string">liveness-http</span><br>    <span class="hljs-attr">labels:</span><br>        <span class="hljs-attr">test:</span> <span class="hljs-string">liveness</span><br><span class="hljs-attr">spec:</span><br>    <span class="hljs-attr">containers:</span><br>        <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">liveness</span><br>          <span class="hljs-attr">image:</span> <span class="hljs-string">test.com/test-http-prober:v0.0.1</span><br>          <span class="hljs-attr">LivenessProbe:</span><br>              <span class="hljs-attr">failureThreshold:</span> <span class="hljs-number">5</span> <span class="hljs-comment">#5 failed checks mark it as not ready</span><br>              <span class="hljs-attr">initialDelaySeconds:</span> <span class="hljs-number">20</span> <span class="hljs-comment">#delayed load time</span><br>              <span class="hljs-attr">periodSeconds:</span> <span class="hljs-number">10</span> <span class="hljs-comment">#retry interval</span><br>              <span class="hljs-attr">timeoutSeconds:</span> <span class="hljs-number">5</span> <span class="hljs-comment">#timeout setting</span><br>              <span class="hljs-attr">successThreshold:</span> <span class="hljs-number">2</span> <span class="hljs-comment">#2 successful checks mark it as ready</span><br>              <span class="hljs-attr">httpGet:</span><br>                  <span class="hljs-attr">port:</span> <span class="hljs-number">8082</span><br>                  <span class="hljs-attr">path:</span> <span class="hljs-string">/status/health</span><br></code></pre></td></tr></table></figure>
+
+<h2 id="Refer"><a href="#Refer" class="headerlink" title="Refer"></a>Refer</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://juejin.cn/post/7163135179177852936">https://juejin.cn/post/7163135179177852936</a></li>
+<li><a target="_blank" rel="noopener" href="https://juejin.cn/post/7163135453489528845">https://juejin.cn/post/7163135453489528845</a></li>
+</ul>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/%E4%BA%91%E5%8E%9F%E7%94%9F/" class="category-chain-item">云原生</a>
+  
+  
+    <span>></span>
+    
+  <a href="/categories/%E4%BA%91%E5%8E%9F%E7%94%9F/Kubernetes/" class="category-chain-item">Kubernetes</a>
+  
+  
+
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/Kubernetes/" class="print-no-link">#Kubernetes</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>Introduction to Kubernetes Probes</div>
+      <div>https://garychow-lgtm.github.io/en/2024/07/31/Kubernetes-Probes/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>Author</div>
+          <div>Gary Chow (Yimin Cao)</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>Posted on</div>
+          <div>July 31, 2024</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>Licensed under</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - Attribution">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/zh-CN/2024/07/31/Kubernetes-nodeAffinity-And-Selector/" title="Kubernetes nodeAffinity &amp; nodeSelector Intros">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">Kubernetes nodeAffinity &amp; nodeSelector Intros</span>
+                        <span class="visible-mobile">Previous</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/zh-CN/2024/07/31/Kubernetes-Probes/" title="Kubernetes Probes Intros">
+                        <span class="hidden-mobile">Kubernetes Probes Intros</span>
+                        <span class="visible-mobile">Next</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>Table of Contents</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">Search</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">Keyword</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+  
+<script src="/js/i18n-nav.js"></script>
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">Blog works best with JavaScript enabled</div>
+  </noscript>
+</body>
+</html>

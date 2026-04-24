@@ -1,0 +1,714 @@
+
+
+<!DOCTYPE html>
+<html lang="en,zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/icons8-ninja-96.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Gary Chow (Yimin Cao)">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="Source Code Analysis - How Custom Partition Commit Policies Are Created and Invoked in Flink’s FileSystemTableSinkWhen writing to a filesystem via Flink’s Table API or SQL with custom partitioning ena">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flink FileSystemTableSink: Code Walkthrough">
+<meta property="og:url" content="https://garychow-lgtm.github.io/en/2025/07/14/Flink-FileSystemTableSink-Code-Intro/index.html">
+<meta property="og:site_name" content="QQ Zone">
+<meta property="og:description" content="Source Code Analysis - How Custom Partition Commit Policies Are Created and Invoked in Flink’s FileSystemTableSinkWhen writing to a filesystem via Flink’s Table API or SQL with custom partitioning ena">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2025-07-14T08:05:08.000Z">
+<meta property="article:modified_time" content="2026-04-24T02:35:47.856Z">
+<meta property="article:author" content="Gary Chow (Yimin Cao)">
+<meta property="article:tag" content="CodeDive">
+<meta property="article:tag" content="Flink">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>Flink FileSystemTableSink: Code Walkthrough - QQ Zone</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"garychow-lgtm.github.io","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.2.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>QQ Zone</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>Home</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>Archives</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>Categories</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>Tags</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/en/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>About</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/en/" target="_self">
+                
+                <span>EN</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/zh-CN/" target="_self">
+                
+                <span>中文</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="Flink FileSystemTableSink: Code Walkthrough"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2025-07-14 16:05" pubdate>
+          July 14, 2025 pm
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          365 words
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          4 mins
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">Flink FileSystemTableSink: Code Walkthrough</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h1 id="Source-Code-Analysis-How-Custom-Partition-Commit-Policies-Are-Created-and-Invoked-in-Flink’s-FileSystemTableSink"><a href="#Source-Code-Analysis-How-Custom-Partition-Commit-Policies-Are-Created-and-Invoked-in-Flink’s-FileSystemTableSink" class="headerlink" title="Source Code Analysis - How Custom Partition Commit Policies Are Created and Invoked in Flink’s FileSystemTableSink"></a>Source Code Analysis - How Custom Partition Commit Policies Are Created and Invoked in Flink’s FileSystemTableSink</h1><p>When writing to a filesystem via Flink’s Table API or SQL with custom partitioning enabled, how does the system inject and apply the <code>sink.partition-commit.policy.kind</code> parameter to control partition commit behavior? This article walks through the call path and implementation details from a source-code perspective.</p>
+<p>My own implementation, [FLINK-32388] Add the ability to pass parameters to CUSTOM PartitionCommitPolicy (<a target="_blank" rel="noopener" href="https://github.com/apache/flink/pull/22831">https://github.com/apache/flink/pull/22831</a>), is also based on the source code analysis in this article.</p>
+<p>Example:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs java"># Configure a dual-policy <span class="hljs-title function_">chain</span> <span class="hljs-params">(metadata commit + custom)</span><br>sink.partition-commit.policy.kind: custom<br><br># Custom policy configuration<br>sink.partition-commit.policy.custom.class: com.company.CustomPolicy<br>sink.partition-commit.policy.custom.parameters: param1,param2<br></code></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="1-Call-Chain-Overview-Where-Does-the-Parameter-Take-Effect"><a href="#1-Call-Chain-Overview-Where-Does-the-Parameter-Take-Effect" class="headerlink" title="1. Call Chain Overview: Where Does the Parameter Take Effect?"></a><strong>1. Call Chain Overview: Where Does the Parameter Take Effect?</strong></h2><p>When a user submits a Flink SQL job, <code>FileSystemTableSink</code> participates in the construction of the physical execution plan as a <code>TableSink</code>. Its core parameter-handling logic occurs along the following call chain:</p>
+<figure class="highlight scss"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs scss">translateToPlanInternal<br> └── createSinkTransformation<br>     └── getSinkRuntimeProvider<br>         └── consumeDataStream<br>             └── consume<br>                 └── createStreamingSink<br>                     └── sink (creates PartitionCommitter)<br>                         └── initializeState (builds policy chain)<br></code></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="2-Physical-Plan-Translation-From-Plan-to-Sink"><a href="#2-Physical-Plan-Translation-From-Plan-to-Sink" class="headerlink" title="2. Physical Plan Translation: From Plan to Sink"></a><strong>2. Physical Plan Translation: From Plan to Sink</strong></h2><p>When the Flink planner constructs the physical execution plan (Transformation or DataStream), it invokes the <code>translateToPlanInternal</code> method of the <code>TableSink</code>. For streaming writes to a filesystem, execution eventually reaches the <code>consume</code> method:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-meta">@Override</span><br><span class="hljs-keyword">public</span> SinkRuntimeProvider <span class="hljs-title function_">getSinkRuntimeProvider</span><span class="hljs-params">(Context sinkContext)</span> &#123;<br>    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">DataStreamSinkProvider</span>() &#123;<br>        <span class="hljs-meta">@Override</span><br>        <span class="hljs-keyword">public</span> DataStreamSink&lt;?&gt; consumeDataStream(<br>                ProviderContext providerContext, DataStream&lt;RowData&gt; dataStream) &#123;<br>            <span class="hljs-keyword">return</span> consume(providerContext, dataStream, sinkContext);<br>        &#125;<br>    &#125;;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>Whether the job runs in streaming mode is determined by whether the data is bounded (unbounded):</p>
+<ul>
+<li>If streaming, it enters <code>createStreamingSink</code> to build the <code>FileSystemSink</code>;</li>
+<li>Otherwise, <code>createBatchSink</code> is used for batch output.</li>
+</ul>
+<hr>
+<h2 id="3-Core-of-the-Policy-Chain-Construction-createStreamingSink-sink"><a href="#3-Core-of-the-Policy-Chain-Construction-createStreamingSink-sink" class="headerlink" title="3. Core of the Policy Chain Construction: createStreamingSink -&gt; sink"></a><strong>3. Core of the Policy Chain Construction: createStreamingSink -&gt; sink</strong></h2><p>The most important call inside <code>createStreamingSink</code> is the <code>sink()</code> method, which is responsible for writing data to the filesystem and executing the partition commit policy to ensure data consistency and visibility.</p>
+<p>It ultimately creates the partition commit component <code>PartitionCommitter</code> and connects it to the <code>writerStream</code>:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> DataStreamSink&lt;?&gt; sink(<br>    ProviderContext providerContext,<br>    DataStream&lt;PartitionCommitInfo&gt; writerStream,<br>    Path path,<br>    ObjectIdentifier tableIdentifier,<br>    List&lt;String&gt; partitionKeys,<br>    TableMetaStoreFactory metaStoreFactory,<br>    FileSystemFactory fsFactory,<br>    ReadableConfig tableOptions<br>) &#123;<br>    <span class="hljs-comment">// Parameter check: whether the partition commit policy is enabled</span><br>    <span class="hljs-keyword">if</span> (partitionKeys.size() &gt; <span class="hljs-number">0</span> &amp;&amp; options.contains(SINK_PARTITION_COMMIT_POLICY_KIND)) &#123;<br>        <span class="hljs-comment">// Build the committer</span><br>        <span class="hljs-type">PartitionCommitter</span> <span class="hljs-variable">committer</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">PartitionCommitter</span>(<br>            path, tableIdentifier, partitionKeys, metaStoreFactory, fsFactory, tableOptions.toConfiguration()<br>        );<br>        <span class="hljs-keyword">return</span> writerStream.transform(<span class="hljs-string">&quot;Partition Committer&quot;</span>, committer);<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="4-Runtime-Policy-Chain-Construction-PartitionCommitter"><a href="#4-Runtime-Policy-Chain-Construction-PartitionCommitter" class="headerlink" title="4. Runtime Policy Chain Construction: PartitionCommitter"></a><strong>4. Runtime Policy Chain Construction: PartitionCommitter</strong></h2><p>When the Flink job starts or is restored, <code>PartitionCommitter.initializeState()</code> is invoked automatically:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">initializeState</span><span class="hljs-params">(StateInitializationContext context)</span> <span class="hljs-keyword">throws</span> Exception &#123;<br>    <span class="hljs-type">PartitionCommitPolicyFactory</span> <span class="hljs-variable">factory</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">PartitionCommitPolicyFactory</span>(<br>        conf.get(SINK_PARTITION_COMMIT_POLICY_KIND),     <span class="hljs-comment">// e.g. &quot;metastore,success-file&quot;</span><br>        conf.get(SINK_PARTITION_COMMIT_POLICY_CLASS),     <span class="hljs-comment">// Custom class name (optional)</span><br>        conf.get(SINK_PARTITION_COMMIT_SUCCESS_FILE_NAME), <span class="hljs-comment">// Used by the success-file policy</span><br>        conf.get(SINK_PARTITION_COMMIT_POLICY_CLASS_PARAMETERS) <span class="hljs-comment">// Custom class parameters (optional)</span><br>    );<br>    <span class="hljs-built_in">this</span>.policies = factory.createPolicyChain(<br>        getUserCodeClassloader(), <span class="hljs-comment">// User classloader</span><br>        () -&gt; &#123; <span class="hljs-comment">// Factory that returns a FileSystem instance</span><br>            <span class="hljs-keyword">try</span> &#123;<br>                <span class="hljs-keyword">return</span> fsFactory.create(locationPath.toUri());<br>            &#125; <span class="hljs-keyword">catch</span> (IOException e) &#123;<br>                <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">RuntimeException</span>(e);<br>            &#125;<br>        &#125;<br>    );<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="5-Core-Logic-of-the-PartitionCommitPolicyFactory"><a href="#5-Core-Logic-of-the-PartitionCommitPolicyFactory" class="headerlink" title="5. Core Logic of the PartitionCommitPolicyFactory"></a><strong>5. Core Logic of the PartitionCommitPolicyFactory</strong></h2><p>Creating the policy chain requires the user classloader (UserCodeClassloader) for the user-defined class and a filesystem factory (FileSystem factory), ensuring that policies can correctly load user code and operate on the partition’s filesystem.</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">/** Create a policy chain. */</span><br><span class="hljs-keyword">public</span> List&lt;PartitionCommitPolicy&gt; <span class="hljs-title function_">createPolicyChain</span><span class="hljs-params">(</span><br><span class="hljs-params">        ClassLoader cl, Supplier&lt;FileSystem&gt; fsSupplier)</span> &#123;<br>    String[] policyStrings = policyKind.split(<span class="hljs-string">&quot;,&quot;</span>);<br>    <span class="hljs-keyword">return</span> Arrays.stream(policyStrings)<br>            .map(<br>                    name -&gt; &#123;<br>                        <span class="hljs-keyword">switch</span> (name.toLowerCase()) &#123;<br>                            <span class="hljs-keyword">case</span> PartitionCommitPolicy.METASTORE:<br>                                <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">MetastoreCommitPolicy</span>();<br>                            <span class="hljs-keyword">case</span> PartitionCommitPolicy.SUCCESS_FILE:<br>                                <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">SuccessFileCommitPolicy</span>(<br>                                        successFileName, fsSupplier.get());<br>                            <span class="hljs-keyword">case</span> PartitionCommitPolicy.CUSTOM:<br>                                <span class="hljs-keyword">try</span> &#123;<br>                                    <span class="hljs-keyword">if</span> (parameters != <span class="hljs-literal">null</span> &amp;&amp; !parameters.isEmpty()) &#123;<br>                                        String[] paramStrings =<br>                                                parameters.toArray(<span class="hljs-keyword">new</span> <span class="hljs-title class_">String</span>[<span class="hljs-number">0</span>]);<br>                                        Class&lt;?&gt;[] classes = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Class</span>&lt;?&gt;[parameters.size()];<br>                                        <span class="hljs-keyword">for</span> (<span class="hljs-type">int</span> <span class="hljs-variable">i</span> <span class="hljs-operator">=</span> <span class="hljs-number">0</span>; i &lt; parameters.size(); i++) &#123;<br>                                            classes[i] = String.class;<br>                                        &#125;<br>                                        <span class="hljs-keyword">return</span> (PartitionCommitPolicy)<br>                                                cl.loadClass(customClass)<br>                                                        .getConstructor(classes)<br>                                                        .newInstance((Object[]) paramStrings);<br>                                    &#125; <span class="hljs-keyword">else</span> &#123;<br>                                        <span class="hljs-keyword">return</span> (PartitionCommitPolicy)<br>                                                cl.loadClass(customClass).newInstance();<br>                                    &#125;&#125;&#125;&#125;&#125;)<br>            .collect(Collectors.toList());&#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>💡 Key point: the custom class must implement the <code>PartitionCommitPolicy</code> interface and provide an appropriate constructor (either parameterized or no-arg).</p>
+</blockquote>
+<hr>
+<h2 id="Summary"><a href="#Summary" class="headerlink" title="Summary"></a><strong>Summary</strong></h2><p>The end-to-end injection flow for a parameter such as <code>sink.partition-commit.policy.kind = metastore,success-file</code> is as follows:</p>
+<figure class="highlight isbl"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs isbl"><span class="hljs-variable">User</span> <span class="hljs-variable">configuration</span><br>  ↓<br><span class="hljs-variable">FileSystemTableSink</span> -&gt; <span class="hljs-function"><span class="hljs-title">sink</span>()</span><br>  ↓<br><span class="hljs-variable">Construct</span> <span class="hljs-variable">PartitionCommitter</span><br>  ↓<br><span class="hljs-function"><span class="hljs-title">initializeState</span>()</span><br>  ↓<br><span class="hljs-variable">PartitionCommitPolicyFactory</span> -&gt; <span class="hljs-function"><span class="hljs-title">createPolicyChain</span>()</span><br>  ↓<br><span class="hljs-variable">Create</span> <span class="hljs-variable">policy</span> <span class="hljs-variable">instances</span> → <span class="hljs-variable">assemble</span> <span class="hljs-variable">the</span> <span class="hljs-variable">policy</span> <span class="hljs-variable">chain</span> → <span class="hljs-variable">drive</span> <span class="hljs-variable">PartitionCommitter</span><br></code></pre></td></tr></table></figure>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/" class="category-chain-item">大数据</a>
+  
+  
+    <span>></span>
+    
+  <a href="/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/Flink/" class="category-chain-item">Flink</a>
+  
+  
+
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/CodeDive/" class="print-no-link">#CodeDive</a>
+      
+        <a href="/tags/Flink/" class="print-no-link">#Flink</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>Flink FileSystemTableSink: Code Walkthrough</div>
+      <div>https://garychow-lgtm.github.io/en/2025/07/14/Flink-FileSystemTableSink-Code-Intro/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>Author</div>
+          <div>Gary Chow (Yimin Cao)</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>Posted on</div>
+          <div>July 14, 2025</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>Licensed under</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - Attribution">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/zh-CN/2025/07/14/Flink-FileSystemTableSink-Code-Intro/" title="Flink-FileSystemTableSink-Code-Intro">
+                        <span class="hidden-mobile">Flink-FileSystemTableSink-Code-Intro</span>
+                        <span class="visible-mobile">Next</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>Table of Contents</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">Search</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">Keyword</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+  
+<script src="/js/i18n-nav.js"></script>
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">Blog works best with JavaScript enabled</div>
+  </noscript>
+</body>
+</html>

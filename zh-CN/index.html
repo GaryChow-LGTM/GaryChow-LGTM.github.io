@@ -318,6 +318,218 @@
     <article class="col-12 col-md-12 mx-auto index-info">
       <h2 class="index-header">
         
+        <a href="/zh-CN/2025/03/19/ingress-and-route53-issues-with-druid-aws-deployments/" target="_self">
+          Druid AWS 部署中的 Ingress 与 Route53 问题
+        </a>
+      </h2>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/zh-CN/2025/03/19/ingress-and-route53-issues-with-druid-aws-deployments/" target="_self">
+        <div>
+          Druid AWS 部署中的 Ingress 与 Route53 问题背景在 AWS 上使用 Kubernetes 部署 Druid 时，通常会使用 AWS ALB（Application Load Balancer）来做流量路由与负载均衡。通过配置 Kubernetes 的 Ingress 资源，ALB 可以将流量路由到不同的服务。与此同时，还需要配置 Route 53 来处理 DNS 域名解析
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2025-03-19 16:52" pubdate>
+              2025-03-19
+            </time>
+          </div>
+        
+        
+          <div class="post-meta mr-3 d-flex align-items-center">
+            <i class="iconfont icon-category"></i>
+            
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/" class="category-chain-item">大数据</a>
+  
+  
+    <span>></span>
+    
+  <a href="/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/Druid/" class="category-chain-item">Druid</a>
+  
+  
+
+  
+
+      </span>
+    
+  
+    
+  
+</span>
+
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/Debug/">#Debug</a>
+            
+              <a href="/tags/Druid/">#Druid</a>
+            
+          </div>
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h2 class="index-header">
+        
+        <a href="/zh-CN/2025/03/19/Frame-Size-Configuration-and-RowTooLarge-Error-Resolution-in-Druid/" target="_self">
+          Druid 中帧大小配置及 RowTooLarge 错误解决方案
+        </a>
+      </h2>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/zh-CN/2025/03/19/Frame-Size-Configuration-and-RowTooLarge-Error-Resolution-in-Druid/" target="_self">
+        <div>
+          Druid 中帧大小配置及 RowTooLarge 错误解决方案背景在 Apache Druid 中，数据处理通常会将大规模数据划分为多个 “frame”（帧）进行处理。在这个过程中，frame size（帧大小）是一个关键参数，它决定了每个 frame 最多可以处理多少数据。frame size 过大或过小都可能影响性能，甚至导致处理失败。此错误日志表明，在处理某条数据时，遇到了一行数据其大小超
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2025-03-19 16:28" pubdate>
+              2025-03-19
+            </time>
+          </div>
+        
+        
+          <div class="post-meta mr-3 d-flex align-items-center">
+            <i class="iconfont icon-category"></i>
+            
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/" class="category-chain-item">大数据</a>
+  
+  
+    <span>></span>
+    
+  <a href="/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/Druid/" class="category-chain-item">Druid</a>
+  
+  
+
+  
+
+      </span>
+    
+  
+</span>
+
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/Debug/">#Debug</a>
+            
+              <a href="/tags/Druid/">#Druid</a>
+            
+          </div>
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h2 class="index-header">
+        
+        <a href="/zh-CN/2024/07/31/spark-history-debug/" target="_self">
+          Spark HistoryServer 介绍与故障排查
+        </a>
+      </h2>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/zh-CN/2024/07/31/spark-history-debug/" target="_self">
+        <div>
+          HistoryServer 介绍HistoryServer 是 Spark 内置的一个 HTTP 服务，我们可以通过下面的命令启动它。HistoryServer 启动后，会开启两个线程分别用于解析和清理日志文件。 1./sbin/start-history-server.sh  该命令会在 http://&lt;server-url&gt;:8080 上创建一个 Web 界面，用于展示尚未完成以及
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2024-07-31 16:18" pubdate>
+              2024-07-31
+            </time>
+          </div>
+        
+        
+          <div class="post-meta mr-3 d-flex align-items-center">
+            <i class="iconfont icon-category"></i>
+            
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/" class="category-chain-item">大数据</a>
+  
+  
+    <span>></span>
+    
+  <a href="/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/Spark/" class="category-chain-item">Spark</a>
+  
+  
+
+  
+
+      </span>
+    
+  
+</span>
+
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/Debug/">#Debug</a>
+            
+              <a href="/tags/Spark/">#Spark</a>
+            
+          </div>
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h2 class="index-header">
+        
         <a href="/zh-CN/2024/07/31/Kubernetes-nodeAffinity-And-Selector/" target="_self">
           Kubernetes nodeAffinity &amp; nodeSelector Intros
         </a>
@@ -585,6 +797,111 @@
               <a href="/tags/Kubernetes/">#Kubernetes</a>
             
           </div>
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h2 class="index-header">
+        
+        <a href="/zh-CN/2024/06/17/HDFS-Decomission-Codes-and-Introduction/" target="_self">
+          HDFS Decommission 代码解读与分析
+        </a>
+      </h2>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/zh-CN/2024/06/17/HDFS-Decomission-Codes-and-Introduction/" target="_self">
+        <div>
+          HDFS Decommission 代码解读与分析HDFS Decommission 背景目前有 200+ 台、1.22PB 的 HDFS3 集群，以及 100- 台、480T 的 HDFS 集群，节点退役（decommission）速度较慢，每小时只能迁移大约 150k 个 block，平均每台节点有约 600k 个 block，单台退役需要约 4 小时。 节点掉线（Node Drop）和节点退
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2024-06-17 15:52" pubdate>
+              2024-06-17
+            </time>
+          </div>
+        
+        
+          <div class="post-meta mr-3 d-flex align-items-center">
+            <i class="iconfont icon-category"></i>
+            
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/" class="category-chain-item">大数据</a>
+  
+  
+    <span>></span>
+    
+  <a href="/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/Hadoop/" class="category-chain-item">Hadoop</a>
+  
+  
+
+  
+
+      </span>
+    
+  
+</span>
+
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/CodeDive/">#CodeDive</a>
+            
+              <a href="/tags/Hadoop/">#Hadoop</a>
+            
+              <a href="/tags/Architecture/">#Architecture</a>
+            
+          </div>
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h2 class="index-header">
+        
+        <a href="/zh-CN/2024/01/01/hello-world/" target="_self">
+          你好，世界
+        </a>
+      </h2>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/zh-CN/2024/01/01/hello-world/" target="_self">
+        <div>
+          欢迎使用 Hexo！这是你的第一篇文章。查看文档获取更多信息。如果在使用 Hexo 时遇到任何问题，你可以在故障排除中找到答案，或者在 GitHub 上向我提问。 快速开始创建一篇新文章1$ hexo new &quot;My New Post&quot;  更多信息：写作 运行服务器1$ hexo server  更多信息：服务器 生成静态文件1$ hexo generate  更多信息：生成
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2024-01-01 00:00" pubdate>
+              2024-01-01
+            </time>
+          </div>
+        
+        
         
       </div>
     </article>

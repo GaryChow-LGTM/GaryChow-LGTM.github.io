@@ -1,0 +1,730 @@
+
+
+<!DOCTYPE html>
+<html lang="en,zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/icons8-ninja-96.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Gary Chow (Yimin Cao)">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="HistoryServer 介绍HistoryServer 是 Spark 内置的一个 HTTP 服务，我们可以通过下面的命令启动它。HistoryServer 启动后，会开启两个线程分别用于解析和清理日志文件。 1.&#x2F;sbin&#x2F;start-history-server.sh  该命令会在 http:&#x2F;&#x2F;&lt;server-url&gt;:8080 上创建一个 Web 界面，用于展示尚未完成以及">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spark HistoryServer 介绍与故障排查">
+<meta property="og:url" content="https://garychow-lgtm.github.io/zh-CN/2024/07/31/spark-history-debug/index.html">
+<meta property="og:site_name" content="QQ Zone">
+<meta property="og:description" content="HistoryServer 介绍HistoryServer 是 Spark 内置的一个 HTTP 服务，我们可以通过下面的命令启动它。HistoryServer 启动后，会开启两个线程分别用于解析和清理日志文件。 1.&#x2F;sbin&#x2F;start-history-server.sh  该命令会在 http:&#x2F;&#x2F;&lt;server-url&gt;:8080 上创建一个 Web 界面，用于展示尚未完成以及">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://garychow-lgtm.github.io/en/2024/07/31/spark-history-debug/img1.png">
+<meta property="og:image" content="https://garychow-lgtm.github.io/en/2024/07/31/spark-history-debug/img2.png">
+<meta property="article:published_time" content="2024-07-31T08:18:22.000Z">
+<meta property="article:modified_time" content="2026-04-24T02:35:47.855Z">
+<meta property="article:author" content="Gary Chow (Yimin Cao)">
+<meta property="article:tag" content="Debug">
+<meta property="article:tag" content="Spark">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://garychow-lgtm.github.io/en/2024/07/31/spark-history-debug/img1.png">
+  
+  
+  
+  <title>Spark HistoryServer 介绍与故障排查 - QQ Zone</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"garychow-lgtm.github.io","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.2.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>QQ Zone</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/en/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/en/" target="_self">
+                
+                <span>EN</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/zh-CN/" target="_self">
+                
+                <span>中文</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="Spark HistoryServer 介绍与故障排查"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2024-07-31 16:18" pubdate>
+          2024年7月31日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          1.5k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          13 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">Spark HistoryServer 介绍与故障排查</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h2 id="HistoryServer-介绍"><a href="#HistoryServer-介绍" class="headerlink" title="HistoryServer 介绍"></a>HistoryServer 介绍</h2><p>HistoryServer 是 Spark 内置的一个 HTTP 服务，我们可以通过下面的命令启动它。HistoryServer 启动后，会开启两个线程分别用于解析和清理日志文件。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">./sbin/start-history-server.sh<br></code></pre></td></tr></table></figure>
+
+<p>该命令会在 <code>http://&lt;server-url&gt;:8080</code> 上创建一个 Web 界面，用于展示尚未完成以及已经完成的应用与尝试（attempt）。</p>
+<p>Spark 作业本身必须配置为记录事件，并将事件日志写入同一个共享的、可写的目录。</p>
+<p>例如，如果服务端配置的日志目录为 <code>hdfs://namenode/spark-logs</code>，那么客户端需要设置以下选项：</p>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs stylus">spark<span class="hljs-selector-class">.eventLog</span><span class="hljs-selector-class">.enabled</span> true<br>spark<span class="hljs-selector-class">.eventLog</span><span class="hljs-selector-class">.dir</span> hdfs:<span class="hljs-comment">//namenode/spark-logs</span><br></code></pre></td></tr></table></figure>
+
+<p><img src="/en/2024/07/31/spark-history-debug/img1.png" srcset="/img/loading.gif" lazyload title="img1"></p>
+<p>为了更好地介绍 Spark History Server，下面的流程图梳理了它的工作流程。</p>
+<p>Spark History Server 依赖于 Spark 的事件（Event）体系。在一个 Spark 任务运行过程中，会产生各种 SparkListenerEvent，例如 ApplicationStart、StageCompleted 等。这些事件会被发送到 ListenerBus，并被已注册的监听器监听。其中，EventLoggingListener 会将这些事件以 JSON 日志文件的形式写入到诸如 HDFS 这样的文件系统中。</p>
+<p>History Server 中的 FsHistoryProvider 会周期性地扫描日志存储路径，从日志文件中抽取概要信息（例如 Application_id、user、status、start_time、end_time、event_log_path），并维护一份数据列表。当用户访问 UI 时，系统会在该列表中查找对应的任务，如果存在，就读取相应的事件日志文件以展示详情。</p>
+<h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>在一些情况下，使用 Spark 提交作业之后，在 <strong>Spark HistoryServer WebUI (v3.2.1)</strong> 上无法找到对应 appId 的日志信息。</p>
+<p>因此，用户无法通过 HistoryServer（HS）来分析作业日志。在分析源码之后，发现问题的根因在于多线程环境下对某个数据结构的错误使用。</p>
+<h2 id="数据结构"><a href="#数据结构" class="headerlink" title="数据结构"></a>数据结构</h2><p>在解释这个问题之前，需要先了解 HS 中一个关键的数据结构。正是对这个数据结构的误用导致了该问题。HS 使用一个名为 Listing 的数据结构来存储键值对，例如：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs xml">&lt;appId, InfoData<span class="hljs-tag">&lt;<span class="hljs-name">appId</span>&gt;</span>&gt;<br>&lt;logPath, InfoData<span class="hljs-tag">&lt;<span class="hljs-name">logPath</span>&gt;</span>&gt;<br></code></pre></td></tr></table></figure>
+
+<h2 id="日志解析流程"><a href="#日志解析流程" class="headerlink" title="日志解析流程"></a>日志解析流程</h2><p>HS 默认每 10 秒运行一次 <code>checkForLogs</code> 方法，以根据日志目录的当前内容来构建应用列表。每次执行时，该方法都会扫描指定的 logDir，并解析日志文件以更新其 KVStore listing。整个流程包含两个主要的方法：</p>
+<ol>
+<li>分别更新 &#x2F; 新增日志文件记录</li>
+<li>移除过期的日志文件记录。</li>
+</ol>
+<p>这些方法通过 <code>submitLogProcessTask</code> 在不同的线程中执行。</p>
+<h2 id="问题场景"><a href="#问题场景" class="headerlink" title="问题场景"></a>问题场景</h2><p>当 <code>checkForLogs</code> 首次执行时，用户提交的 ABC 作业仍在运行中。此时日志目录中的文件名为 <code>ABC.inprocess</code>，因此 KVStore <code>Listing</code> 会新增两条记录：</p>
+<figure class="highlight 1c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs 1c">&lt;&#x27;ABC&#x27;, InfoData&lt;&#x27;ABC&#x27;&gt;&gt;<br>&lt;&#x27;/tmp/ABC.inprocess&#x27;, InfoData&lt;&#x27;/tmp/ABC.inprocess&#x27;&gt;&gt;<br></code></pre></td></tr></table></figure>
+<p>在下一次运行 <code>checkForLogs</code> 时，ABC 应用已经结束，日志文件 <code>/tmp/ABC.inprocess</code> 已被删除，新的日志文件路径变为 <code>/tmp/ABC</code>，所以在本次 <code>checkForLogs</code> 运行过程中，会启动两个线程并执行如下操作：</p>
+<p><strong>线程 1</strong>：更新 &#x2F; 新增日志文件记录，该线程会解析日志路径 <code>/tmp/ABC</code>。首先它会更新 KVStore Listing 中的 <code>&lt;&#39;ABC&#39;, InfoData&lt;&#39;ABC&#39;&gt;&gt;</code>，然后会在 KVStore Listing 中新增一条记录 <code>&lt;&#39;/tmp/ABC&#39;, InfoData&lt;&#39;/tmp/ABC&#39;&gt;&gt;</code>。</p>
+<p><strong>线程 2</strong>：移除过期的日志文件记录，该线程会注意到日志路径 <code>/tmp/ABC.inprocess</code> 已经不存在。首先它会将该路径识别为过期数据，然后调用 <code>cleanAppData</code> 方法，在该方法中会执行以下代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-type">val</span> <span class="hljs-variable">app</span> <span class="hljs-operator">=</span> load(appId)<br></code></pre></td></tr></table></figure>
+<p>通常情况下，当该方法加载 <code>appId</code> 时，线程 1 已经完成了对 KVStore Listing 中 <code>&lt;&#39;ABC&#39;, InfoData&lt;&#39;ABC&#39;&gt;&gt;</code> 的更新。因此，当下面的代码执行时，<code>isStale</code> 的值会是 <code>false</code>。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-type">val</span> <span class="hljs-variable">isStale</span> <span class="hljs-operator">=</span> attempt.headOption.exists &#123; a =&gt;<br>   <span class="hljs-keyword">if</span> (a.logPath != <span class="hljs-keyword">new</span> <span class="hljs-title class_">Path</span>(logPath).getName()) &#123;<br>     <span class="hljs-literal">false</span><br>   &#125; <span class="hljs-keyword">else</span> &#123;<br>     ...<br>     <span class="hljs-literal">true</span><br>   &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>然而，在某些情况下，当该方法加载 <code>appId</code> 时，线程 1 还未完成更新。这样一来，当上面的代码执行时，<code>isStale</code> 的值会变为 <code>true</code>。最糟糕的结果是：在线程 1 完成更新之后，该操作又把 KVStore Listing 中的日志文件记录 <code>&lt;&#39;ABC&#39;, InfoData&lt;&#39;ABC&#39;&gt;&gt;</code> 删除了。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">if</span> (isStale) &#123;<br>   <span class="hljs-keyword">if</span> (others.nonEmpty) &#123;<br>     <span class="hljs-type">val</span> <span class="hljs-variable">newAppInfo</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">ApplicationInfoWrapper</span>(app.info, others)<br>     listing.write(newAppInfo)<br>   &#125; <span class="hljs-keyword">else</span> &#123;<br>     listing.delete(classOf[ApplicationInfoWrapper], appId)<br>   &#125;<br> &#125;<br>&#125; <span class="hljs-keyword">catch</span> &#123;<br>  <span class="hljs-keyword">case</span> _: NoSuchElementException =&gt;<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>因此，日志文件记录 <code>&lt;&#39;ABC&#39;, InfoData&lt;&#39;ABC&#39;&gt;&gt;</code> 会被永久删除。当用户在 WebUI 上访问该应用时，即使日志文件本身仍然存在，也只会看到 “Application not found”。</p>
+<p>需要注意的是，日志文件记录 <code>&lt;&#39;ABC&#39;, InfoData&lt;&#39;ABC&#39;&gt;&gt;</code> 不会再被添加回 KVStore Listing。因为在下一次 <code>checkForLogs</code> 运行时，由于 <code>&lt;&#39;/tmp/ABC&#39;, InfoData&lt;&#39;/tmp/ABC&#39;&gt;&gt;</code> 这条记录的存在，表示 ABC 的日志文件无需重新加载，所以该方法会直接跳过这个日志文件。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-type">val</span> <span class="hljs-variable">info</span> <span class="hljs-operator">=</span> listing.read(classOf[LogInfo], reader.rootPath.toString())<br> <br><span class="hljs-keyword">if</span> (shouldReloadLog(info, reader)) &#123;<br>    ...<br>    &#125; <span class="hljs-keyword">else</span> &#123;<br>    <span class="hljs-literal">false</span><br>    &#125;<br></code></pre></td></tr></table></figure>
+<p>为了更清晰地展示该 Bug 的触发流程，下面是对应的流程图</p>
+<p><img src="/en/2024/07/31/spark-history-debug/img2.png" srcset="/img/loading.gif" lazyload title="img2"></p>
+<h2 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h2><p>由于在多线程环境下对 KVStore Listing 的使用存在问题，我们把 <code>cleanAppData</code> 方法变为原子操作，就像 addListing 方法一样，从而让多个线程都可以安全地使用 KVStore Listing，而不会出现数据错误。</p>
+<p>例如：</p>
+<p>如果线程 1 先于线程 2 获取到 KVStore Listing 的锁，它会更新 <code>&lt;appId, InfoData&lt;appId&gt;&gt;</code> 这条记录，这样线程 2 就可以安全地读取到该记录，进而使 isStale 为 <code>false</code>，<code>cleanAppData</code> 方法也就不会再删除 KVStore Listing 中的记录。</p>
+<p>如果线程 2 先于线程 1 获取到 KVStore Listing 的锁，它会使 isStale 为 <code>true</code>，<code>cleanAppData</code> 方法会删除 KVStore Listing 中的记录。但这没关系，因为线程 1 随后会再次向 KVStore Listing 中写入 <code>&lt;appId, InfoData&lt;appId&gt;&gt;</code> 这条记录。</p>
+<p>在上述所有情况下，KVStore Listing 中的记录都不会被意外移除。</p>
+<p>这就是 Spark v3.2.2 中用来修复该问题的方法（<a target="_blank" rel="noopener" href="https://github.com/apache/spark/pull/36424/files%EF%BC%89%E3%80%82">https://github.com/apache/spark/pull/36424/files）。</a></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/" class="category-chain-item">大数据</a>
+  
+  
+    <span>></span>
+    
+  <a href="/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/Spark/" class="category-chain-item">Spark</a>
+  
+  
+
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/Debug/" class="print-no-link">#Debug</a>
+      
+        <a href="/tags/Spark/" class="print-no-link">#Spark</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>Spark HistoryServer 介绍与故障排查</div>
+      <div>https://garychow-lgtm.github.io/zh-CN/2024/07/31/spark-history-debug/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>Gary Chow (Yimin Cao)</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2024年7月31日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/en/2024/07/31/spark-history-debug/" title="Spark HistoryServer Intros and Troubleshooting">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">Spark HistoryServer Intros and Troubleshooting</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/en/2024/07/31/Kubernetes-nodeAffinity-And-Selector/" title="Kubernetes nodeAffinity &amp; nodeSelector Intros">
+                        <span class="hidden-mobile">Kubernetes nodeAffinity &amp; nodeSelector Intros</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+  
+<script src="/js/i18n-nav.js"></script>
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
