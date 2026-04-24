@@ -1,20 +1,21 @@
 
 
 <!DOCTYPE html>
-<html lang="en,zh-CN" data-default-color-scheme=auto>
+
+<html lang="en" data-default-color-scheme=auto>
 
 
 
 <head>
   <meta charset="UTF-8">
   <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
-  <link rel="icon" href="/img/icons8-ninja-96.png">
+  <link rel="icon" href="/img/fluid.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
   <meta http-equiv="x-ua-compatible" content="ie=edge">
   
   <meta name="theme-color" content="#2f4154">
   <meta name="author" content="Gary Chow (Yimin Cao)">
-  <meta name="keywords" content="">
+  <meta name="keywords" content="Gary Chow,Yimin Cao,博客,blog,backend,data,AI">
   
     <meta name="description" content="BackgroundOur machines have been frequently triggering disk capacity alerts recently, and we found that the following directories were consuming a significant amount of disk space: 1sudo du -sh .&#x2F;* --">
 <meta property="og:type" content="article">
@@ -24,13 +25,16 @@
 <meta property="og:description" content="BackgroundOur machines have been frequently triggering disk capacity alerts recently, and we found that the following directories were consuming a significant amount of disk space: 1sudo du -sh .&#x2F;* --">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2024-06-26T09:00:28.000Z">
-<meta property="article:modified_time" content="2026-04-24T02:35:47.858Z">
+<meta property="article:modified_time" content="2026-04-24T04:05:49.850Z">
 <meta property="article:author" content="Gary Chow (Yimin Cao)">
 <meta property="article:tag" content="Debug">
 <meta property="article:tag" content="Linux">
 <meta name="twitter:card" content="summary_large_image">
   
   
+  
+    <meta name="google-site-verification" content="inC248SVxmevou3PtGifxbw8D450-A3WNwYP2LNxpTs" />
+
   
   <title>Debugging Oversized Systemd Journal Logs - QQ Zone</title>
 
@@ -83,7 +87,10 @@
 
 
   
-<meta name="generator" content="Hexo 7.2.0"></head>
+<meta name="generator" content="Hexo 7.2.0"><link rel="alternate" hreflang="en" href="https://garychow-lgtm.github.io/en/2024/06/26/systemd-log-too-big/index.html"/>
+<link rel="alternate" hreflang="zh-CN" href="https://garychow-lgtm.github.io/zh-CN/2024/06/26/systemd-log-too-big/index.html"/>
+<link rel="alternate" hreflang="x-default" href="https://garychow-lgtm.github.io/en/2024/06/26/systemd-log-too-big/index.html"/>
+</head>
 
 
 <body>
@@ -114,7 +121,7 @@
           
           
             <li class="nav-item">
-              <a class="nav-link" href="/" target="_self">
+              <a class="nav-link" href="/en/" target="_self">
                 <i class="iconfont icon-home-fill"></i>
                 <span>Home</span>
               </a>
@@ -126,7 +133,7 @@
           
           
             <li class="nav-item">
-              <a class="nav-link" href="/archives/" target="_self">
+              <a class="nav-link" href="/en/archives/" target="_self">
                 <i class="iconfont icon-archive-fill"></i>
                 <span>Archives</span>
               </a>
@@ -138,7 +145,7 @@
           
           
             <li class="nav-item">
-              <a class="nav-link" href="/categories/" target="_self">
+              <a class="nav-link" href="/en/categories/" target="_self">
                 <i class="iconfont icon-category-fill"></i>
                 <span>Categories</span>
               </a>
@@ -150,7 +157,7 @@
           
           
             <li class="nav-item">
-              <a class="nav-link" href="/tags/" target="_self">
+              <a class="nav-link" href="/en/tags/" target="_self">
                 <i class="iconfont icon-tags-fill"></i>
                 <span>Tags</span>
               </a>
@@ -343,12 +350,12 @@ This will display the currently available log information, including the portion
     
       <span class="category-chain">
         
-  <a href="/categories/%E7%B3%BB%E7%BB%9F%E8%BF%90%E7%BB%B4/" class="category-chain-item">系统运维</a>
+  <a href="/en/categories/Ops/" class="category-chain-item">Ops</a>
   
   
     <span>></span>
     
-  <a href="/categories/%E7%B3%BB%E7%BB%9F%E8%BF%90%E7%BB%B4/Linux/" class="category-chain-item">Linux</a>
+  <a href="/en/categories/Ops/Linux/" class="category-chain-item">Linux</a>
   
   
 
@@ -365,9 +372,9 @@ This will display the currently available log information, including the portion
     <div class="post-meta">
       <i class="iconfont icon-tags"></i>
       
-        <a href="/tags/Debug/" class="print-no-link">#Debug</a>
+        <a href="/en/tags/Debug/" class="print-no-link">#Debug</a>
       
-        <a href="/tags/Linux/" class="print-no-link">#Linux</a>
+        <a href="/en/tags/Linux/" class="print-no-link">#Linux</a>
       
     </div>
   
@@ -689,10 +696,6 @@ This will display the currently available log information, including the portion
   <script  src="/js/local-search.js" ></script>
 
 
-
-
-  
-<script src="/js/i18n-nav.js"></script>
 
 
 

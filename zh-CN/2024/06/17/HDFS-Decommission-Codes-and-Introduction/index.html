@@ -1,0 +1,787 @@
+
+
+<!DOCTYPE html>
+
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Gary Chow (Yimin Cao)">
+  <meta name="keywords" content="Gary Chow,Yimin Cao,博客,blog,backend,data,AI">
+  
+    <meta name="description" content="HDFS Decommission 代码解读与分析HDFS 节点退役背景目前有 200+ 台、1.22PB 的 HDFS3 集群，以及 100- 台、480T 的 HDFS 集群，节点退役（decommission）速度较慢，每小时只能迁移大约 150k 个 block，平均每台节点有约 600k 个 block，单台退役需要约 4 小时。 节点掉线与节点退役的区别节点退役（Node Decomm">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HDFS Decommission 代码解读与分析">
+<meta property="og:url" content="https://garychow-lgtm.github.io/zh-CN/2024/06/17/HDFS-Decommission-Codes-and-Introduction/index.html">
+<meta property="og:site_name" content="QQ Zone">
+<meta property="og:description" content="HDFS Decommission 代码解读与分析HDFS 节点退役背景目前有 200+ 台、1.22PB 的 HDFS3 集群，以及 100- 台、480T 的 HDFS 集群，节点退役（decommission）速度较慢，每小时只能迁移大约 150k 个 block，平均每台节点有约 600k 个 block，单台退役需要约 4 小时。 节点掉线与节点退役的区别节点退役（Node Decomm">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2024-06-17T07:52:23.000Z">
+<meta property="article:modified_time" content="2026-04-24T04:06:00.911Z">
+<meta property="article:author" content="Gary Chow (Yimin Cao)">
+<meta property="article:tag" content="CodeDive">
+<meta property="article:tag" content="Hadoop">
+<meta property="article:tag" content="Architecture">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+    <meta name="google-site-verification" content="inC248SVxmevou3PtGifxbw8D450-A3WNwYP2LNxpTs" />
+
+  
+  <title>HDFS Decommission 代码解读与分析 - QQ Zone</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"garychow-lgtm.github.io","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/zh-CN/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.2.0"><link rel="alternate" hreflang="en" href="https://garychow-lgtm.github.io/en/2024/06/17/HDFS-Decommission-Codes-and-Introduction/index.html"/>
+<link rel="alternate" hreflang="zh-CN" href="https://garychow-lgtm.github.io/zh-CN/2024/06/17/HDFS-Decommission-Codes-and-Introduction/index.html"/>
+<link rel="alternate" hreflang="x-default" href="https://garychow-lgtm.github.io/en/2024/06/17/HDFS-Decommission-Codes-and-Introduction/index.html"/>
+</head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>QQ Zone</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/zh-CN/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/zh-CN/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/zh-CN/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/zh-CN/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/zh-CN/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/en/" target="_self">
+                
+                <span>EN</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/zh-CN/" target="_self">
+                
+                <span>中文</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="HDFS Decommission 代码解读与分析"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2024-06-17 15:52" pubdate>
+          2024年6月17日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          3.3k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          28 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">HDFS Decommission 代码解读与分析</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h1 id="HDFS-Decommission-代码解读与分析"><a href="#HDFS-Decommission-代码解读与分析" class="headerlink" title="HDFS Decommission 代码解读与分析"></a>HDFS Decommission 代码解读与分析</h1><h2 id="HDFS-节点退役背景"><a href="#HDFS-节点退役背景" class="headerlink" title="HDFS 节点退役背景"></a>HDFS 节点退役背景</h2><p>目前有 200+ 台、1.22PB 的 HDFS3 集群，以及 100- 台、480T 的 HDFS 集群，节点退役（decommission）速度较慢，每小时只能迁移大约 150k 个 block，平均每台节点有约 600k 个 block，单台退役需要约 4 小时。</p>
+<h2 id="节点掉线与节点退役的区别"><a href="#节点掉线与节点退役的区别" class="headerlink" title="节点掉线与节点退役的区别"></a>节点掉线与节点退役的区别</h2><h3 id="节点退役（Node-Decommissioning）"><a href="#节点退役（Node-Decommissioning）" class="headerlink" title="节点退役（Node Decommissioning）"></a>节点退役（Node Decommissioning）</h3><p>首先，正常情况下将节点加入退役名单，先告知 NameNode 和 YARN 不要再向其提交新任务以及写入数据；然后等待该节点上的数据块在集群中完成复制；<strong>此时被退役的节点会优先作为 srcNode 数据源（优先选择处于退役中的节点作为复制数据源 src，因为它没有写入请求，负载较低</strong>），其他节点从这个<strong>退役中</strong>的节点作为<strong>复制数据源 src</strong>。其他节点从该退役节点复制数据块到其他节点，因此该节点此时的负载会比较高。所有数据块复制完毕后，节点状态变为 Decommissioned，可以从 NameNode URL 页面查看。<strong>注意，DataNode 开始复制退役数据的时间同样是 10 分 30 秒之后，并不会因为是主动退役而提前开始，因为 NameNode 与 DataNode 之间始终维持着简单的主从关系，NameNode 不会主动向 DataNode 发起任何 IPC 调用，DataNode 需要配合 NameNode 完成的所有操作都是通过两者心跳应答时携带的 DatanodeCommand 返回的。</strong></p>
+<h3 id="节点掉线（Node-Drop）"><a href="#节点掉线（Node-Drop）" class="headerlink" title="节点掉线（Node Drop）"></a>节点掉线（Node Drop）</h3><p>例如强制停止 DataNode、物理机挂了（比如高负载掉线、突发网络故障、硬件故障等），这些都属于节点掉线，一般默认 10 分 30 秒后（主要由两个参数控制）NameNode 会检测到该节点通信异常、判定其掉线。随后 NameNode 根据该节点的 IP，查出该节点上所有的 blockid，以及对应副本所在的机器，通过心跳机制安排数据复制。此时进行数据复制时，数据源不再是已掉线的节点，而是多个副本中的其他节点；同样，此时的副本复制也遵循机架感知、副本搁置策略。</p>
+<aside>
+💡 节点掉线与退役两者的区别不仅体现在数据复制方式不同，还在于 NameNode 针对 Under-Replicated Blocks 的数据复制策略也不一样（block 的复制等级分为 5 种）。举个极端的例子：单副本节点退役数据不会丢失，而单副本节点掉线则会真正导致数据丢失。
+
+</aside>
+
+<h3 id="节点掉线引发的网络风暴"><a href="#节点掉线引发的网络风暴" class="headerlink" title="节点掉线引发的网络风暴"></a>节点掉线引发的网络风暴</h3><p>几十 T、甚至上百 T、上百万 block 的节点掉线时，会出现大量 RPC 风暴，尤其对大规模、高负载集群来说，对 NameNode 是很大的挑战，不仅会影响生产性能，还会存在很大的隐患，特别是对于带宽有瓶颈限制的集群。</p>
+<p>一般来说，NameNode 检测 DataNode 是否掉线的时间是 10<em>3s（心跳时间）+ 2</em>5min（NameNode 检测时间，参数为：<code>dfs.namenode.heartbeat.recheck-interval</code>）&#x3D; 10 分 30 秒。如果在 10min30s 的时间内带宽持续打满，RPC 请求延迟，DataNode 与 NameNode 节点通信不畅，就非常容易导致其他节点继续掉线，形成恶性循环，这种情况应当如何避免？</p>
+<p>NameNode 维护着一个复制优先级队列，对于副本不足的文件 block，按优先级排序，仅剩一个副本的文件 block 会享有最高的复制优先级。因此从这里看，对于两副本的集群来说，只要有一个 block 出现异常，就只剩一个副本，就是最高优先级的块复制，会进入风暴模式复制，如果控制不好很容易影响集群性能，甚至搞挂集群。因此一般不建议集群副本因子为 2。</p>
+<aside>
+💡 L1（最高）：存在数据丢失风险的块，例如：1. 只有一个副本的块（尤其对于 2 副本的块，下线一台节点）或者这些 block 当前有 0 个 active 副本；2. 单副本位于正在退役节点上的块。
+
+<p>L2：block 副本的实际值远低于配置值（例如 3 副本缺失 2 个），即副本数不到期望值 1&#x2F;3 时的块，这些 block 会以第二优先级进行复制。例如 4 副本的 block 丢失或损坏了 3 个，它的复制优先级会高于 4 副本缺失 2 个的 block。</p>
+<p>L3：副本不足但优先级没有 L2 高的那些块，会被优先复制。第三优先级。</p>
+<p>L4：block 已满足最小副本数要求。副本度需求低于 L2-L3。</p>
+<p>L5：已损坏的块，但当前仍存在可用的非损坏副本。</p>
+</aside>
+
+<h3 id="通过参数控制节点掉线引发的-RPC-风暴"><a href="#通过参数控制节点掉线引发的-RPC-风暴" class="headerlink" title="通过参数控制节点掉线引发的 RPC 风暴"></a>通过参数控制节点掉线引发的 RPC 风暴</h3><p>下述三个参数都是 <code>hdfs-site.xml</code> 中的参数，具体可以参考 Apache Hadoop 官网。其实 block 的复制速度由两方面决定：一是 NameNode 分发任务的速度，二是 DataNode 之间进行复制的速度。前者可以理解为入口，后者可以视为出口。</p>
+<blockquote>
+<p>这些参数在 Hadoop 2.7.3 中并没有。</p>
+</blockquote>
+<h4 id="入口参数"><a href="#入口参数" class="headerlink" title="入口参数"></a>入口参数</h4><p>从 NameNode 层面控制任务分发，此参数修改必须<strong>重启 NameNode</strong>，无需重启 DataNode。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs bash">dfs.namenode.replication.work.multiplier.per.iteration <br>default=2<br></code></pre></td></tr></table></figure>
+
+<p>该参数决定了当 NameNode 与 DataNode 心跳（3s）下发任务列表时，告诉每个 DataNode 可以进行复制的 block 数量。例如集群有 500 个节点，此值设置为 10，那么一次心跳 NameNode 可下发 DataNode 进行复制的数据块数量为 10*500&#x3D;5000 块。</p>
+<p>假如一个节点掉线或退役时有 800000 个 block 需要复制，那么 NameNode 需要多长时间才能将待复制 block 的任务全部下发给 DataNode？</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-string">任务分发时间</span> <span class="hljs-string">=</span> <br><span class="hljs-string">待复制</span> <span class="hljs-string">block</span> <span class="hljs-string">数</span> <span class="hljs-string">/（DataNode</span> <span class="hljs-string">数</span> <span class="hljs-string">*</span> <span class="hljs-string">参数值）*</span> <span class="hljs-string">心跳间隔时间</span><br></code></pre></td></tr></table></figure>
+
+<h4 id="出口参数"><a href="#出口参数" class="headerlink" title="出口参数"></a>出口参数</h4><p>与上面从 NameNode 层面控制任务分发相对应，下面两个参数从 DataNode 层面控制，同样需要<strong>重启 NameNode</strong>。</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-string">dfs.namenode.replication.max-streams</span><br><span class="hljs-string">default=2</span><br></code></pre></td></tr></table></figure>
+
+<p>此参数用于控制 DataNode 节点进行数据复制的最大线程数。从上文我们知道，block 的复制优先级分为 5 种。此参数控制的是除最高优先级以外的块复制，也就是除最高优先级以外的复制流限制。</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs yaml"><span class="hljs-string">dfs.namenode.replication.max-streams-hard-limit</span><br><span class="hljs-string">hadoop</span> <span class="hljs-string">default=2,</span> <span class="hljs-string">cdh</span> <span class="hljs-string">default=40</span><br></code></pre></td></tr></table></figure>
+
+<p>此参数用于控制 DataNode 所有优先级块复制的流数量，包含最高优先级；一般与上面两个参数互相配合使用。</p>
+<aside>
+💡 前者参数控制 DataNode 接受任务的频率，后两个参数进一步限制 DataNode 一次可完成的最大并行线程网络传输量。以上参数的具体取值，取决于集群规模和集群配置，不能一概而论。一般来说从入口控制会比较简单。例如 500 台规模的集群，dfs.namenode.replication.work.multiplier.per.iteration = 10，那么集群一次心跳下发 5000 个 block 的量；假设集群文件存储完全打散到 500 台节点，每个节点同时复制 10 个 block（实际由于副本搁置策略、机架感知等原因，并不会所有节点都参与数据复制），每个 block 大小 128Mb，那么每个节点的网络负载是 128 * 10/3 = 546Mb/s，这时就要结合实际查看是否存在带宽瓶颈，这么大的网络 IO 是否会影响正常任务的计算，如果有的话，这个值就要适当调小一些。
+
+</aside>
+
+<h2 id="如何快速下线"><a href="#如何快速下线" class="headerlink" title="如何快速下线"></a>如何快速下线</h2><p>让节点快速下线的本质其实就是提升副本的复制速度。主要还是依靠上面三个参数进行控制：第一是控制 NameNode 任务分发，第二是控制 DataNode 复制速率，前提是不影响正常生产任务的进行。集群规模越小，下线越慢，例如因为下发的总量会慢很多。</p>
+<p>比如一个 500 台节点的集群 <code>dfs.namenode.replication.work.multiplier.per.iteration=10</code>，而一个 50 台节点的集群这个值就应设为 100，两者 NameNode 任务分发速度才能保持一致。具体需要结合实际集群规模进行设置。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs json">&lt;property&gt;<br>    &lt;name&gt;dfs.namenode.replication.max-streams&lt;/name&gt;<br>    &lt;value&gt;<span class="hljs-number">10</span>&lt;/value&gt;<br>&lt;/property&gt;<br>&lt;property&gt;<br>    &lt;name&gt;dfs.namenode.replication.max-streams-hard-limit&lt;/name&gt;<br>    &lt;value&gt;<span class="hljs-number">20</span>&lt;/value&gt;<br>&lt;/property&gt;<br>&lt;property&gt;<br>    &lt;name&gt;dfs.namenode.replication.work.multiplier.per.iteration&lt;/name&gt;<br>    &lt;value&gt;<span class="hljs-number">5</span>&lt;/value&gt;<br>&lt;/property&gt;<br></code></pre></td></tr></table></figure>
+
+<p>在测试集群中，15 台 HDFS 节点，平均每台 80k block，每小时能迁移 63k block，比最初的 12k 提升了 5 倍。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs json"># cdh 配置<br>dfs.namenode.replication.work.multiplier.per.iteration=<span class="hljs-number">4</span><br>dfs.namenode.replication.max-streams=<span class="hljs-number">20</span>   <br>dfs.namenode.replication.max-streams-hard-limit=<span class="hljs-number">40</span><br></code></pre></td></tr></table></figure>
+
+<h4 id="影响"><a href="#影响" class="headerlink" title="影响"></a>影响</h4><p>会显著提升 CPU Load、CPU IO Wait、Disk IO Wait 等资源使用率。</p>
+<h3 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h3><p>当 <code>dfs.hosts.exclude</code> 的地址写入 conf 之后，refreshNodes 就可以拿到 exclude list 并对其进行操作。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">/**</span><br><span class="hljs-comment"> * Rereads conf to get hosts and exclude list file names.</span><br><span class="hljs-comment"> * Rereads the files to update the hosts and exclude lists.  It</span><br><span class="hljs-comment"> * checks if any of the hosts have changed states:</span><br><span class="hljs-comment"> */</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">refreshNodes</span><span class="hljs-params">(<span class="hljs-keyword">final</span> Configuration conf)</span> <span class="hljs-keyword">throws</span> IOException &#123;<br>  refreshHostsReader(conf);<br>  namesystem.writeLock();<br>  <span class="hljs-keyword">try</span> &#123;<br>    refreshDatanodes();<br>    countSoftwareVersions();<br>  &#125; <span class="hljs-keyword">finally</span> &#123;<br>    namesystem.writeUnlock();<br>  &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>通过 <code>dfs.exclude</code> 读取节点地址，然后将其标记为 decommission，并使用 monitor 来追踪该节点。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs bash">public void startDecommission(DatanodeDescriptor node) &#123;<br>  <span class="hljs-keyword">if</span> (!node.isDecommissionInProgress() &amp;&amp; !node.isDecommissioned()) &#123;<br>    // Update DN stats maintained by HeartbeatManager<br>    hbManager.startDecommission(node);<br>    // hbManager.startDecommission will <span class="hljs-built_in">set</span> dead node to decommissioned.<br>    <span class="hljs-keyword">if</span> (node.isDecommissionInProgress()) &#123;<br>      <span class="hljs-keyword">for</span> (DatanodeStorageInfo storage : node.getStorageInfos()) &#123;<br>        LOG.info(<span class="hljs-string">&quot;Starting decommission of &#123;&#125; &#123;&#125; with &#123;&#125; blocks&quot;</span>,<br>            node, storage, storage.numBlocks());<br>      &#125;<br>      node.getLeavingServiceStatus().setStartTime(monotonicNow());<br>      monitor.startTrackingNode(node);<br>    &#125;<br>  &#125; <span class="hljs-keyword">else</span> &#123;<br>    LOG.trace(<span class="hljs-string">&quot;startDecommission: Node &#123;&#125; in &#123;&#125;, nothing to do.&quot;</span>,<br>        node, node.getAdminState());<br>  &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>在 decommission 之前，会先对集群的 stats 进行预减，例如 <code>capacityUsed</code>、<code>capacityTotal</code> 等。</p>
+<p>monitor 的 run() 方法会调用 processPendingNodes()，从 <code>pending nodes</code> 中取出节点并进行 decommission。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">/**</span><br><span class="hljs-comment"> * Move any pending nodes into outOfServiceNodeBlocks to initiate the</span><br><span class="hljs-comment"> * decommission or maintenance mode process.</span><br><span class="hljs-comment"> *</span><br><span class="hljs-comment"> * This method must be executed under the namenode write lock to prevent</span><br><span class="hljs-comment"> * the pendingNodes list from being modified externally.</span><br><span class="hljs-comment"> */</span><br><span class="hljs-keyword">private</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">processPendingNodes</span><span class="hljs-params">()</span> &#123;<br>  <span class="hljs-keyword">while</span> (!pendingNodes.isEmpty() &amp;&amp;<br>      (maxConcurrentTrackedNodes == <span class="hljs-number">0</span> ||<br>          outOfServiceNodeBlocks.size() &lt; maxConcurrentTrackedNodes)) &#123;<br>    outOfServiceNodeBlocks.put(pendingNodes.poll(), <span class="hljs-literal">null</span>);<br>  &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>拿到 nodes 之后，会调用 check() 方法，获取这些节点的 block 信息并处理 PendingReplication Blocks。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">private</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">check</span><span class="hljs-params">()</span> &#123;<br>  <span class="hljs-keyword">final</span> List&lt;DatanodeDescriptor&gt; toRemove = <span class="hljs-keyword">new</span> <span class="hljs-title class_">ArrayList</span>&lt;&gt;();<br><br>  <span class="hljs-keyword">if</span> (outOfServiceNodeBlocks.size() == <span class="hljs-number">0</span>) &#123;<br>    <span class="hljs-comment">// No nodes currently being tracked so simply return</span><br>    <span class="hljs-keyword">return</span>;<br>  &#125;<br><br>  <span class="hljs-comment">// Check if there are any pending nodes to process, ie those where the</span><br>  <span class="hljs-comment">// storage has not been scanned yet. For all which are pending, scan</span><br>  <span class="hljs-comment">// the storage and load the under-replicated block list into</span><br>  <span class="hljs-comment">// outOfServiceNodeBlocks. As this does not modify any external structures</span><br>  <span class="hljs-comment">// it can be done under the namenode *read* lock, and the lock can be</span><br>  <span class="hljs-comment">// dropped between each storage on each node.</span><br>  <span class="hljs-comment">//</span><br>  <span class="hljs-comment">// TODO - This is an expensive call, depending on how many nodes are</span><br>  <span class="hljs-comment">//        to be processed, but it requires only the read lock and it will</span><br>  <span class="hljs-comment">//        be dropped and re-taken frequently. We may want to throttle this</span><br>  <span class="hljs-comment">//        to process only a few nodes per iteration.</span><br>  outOfServiceNodeBlocks.keySet()<br>      .stream()<br>      .filter(n -&gt; outOfServiceNodeBlocks.get(n) == <span class="hljs-literal">null</span>)<br>      .forEach(n -&gt; scanDatanodeStorage(n, <span class="hljs-literal">true</span>));<br><br>  processMaintenanceNodes();<br>  <span class="hljs-comment">// First check the pending replication list and remove any blocks</span><br>  <span class="hljs-comment">// which are now replicated OK. This list is constrained in size so this</span><br>  <span class="hljs-comment">// call should not be overly expensive.</span><br>  processPendingReplication();<br><br>  <span class="hljs-comment">// Now move a limited number of blocks to pending</span><br>  moveBlocksToPending();<br><br>  <span class="hljs-comment">// Check if any nodes have reached zero blocks and also update the stats</span><br>  <span class="hljs-comment">// exposed via JMX for all nodes still being processed.</span><br>  checkForCompletedNodes(toRemove);<br><br>  <span class="hljs-comment">// Finally move the nodes to their final state if they are ready.</span><br>  processCompletedNodes(toRemove);<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<ol>
+<li>processPendingReplication() 方法会调用 isBlockReplicatedOk() 方法（核心），用于判断 block 是否需要 reconstruction，并将相关信息放入 <code>blockManager</code> 的 <code>*replication queue*</code> 中。</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs java">blockManager.neededReconstruction.add(block,<br>    liveReplicas, num.readOnlyReplicas(),<br>    num.outOfServiceReplicas(),<br>    blockManager.getExpectedRedundancyNum(block));<br></code></pre></td></tr></table></figure>
+
+<ol start="2">
+<li>moveBlocksToPending() 方法会判断队列的长度以及 pending replication 的上限，然后为每一个需要 maintenance 或 decommission 的节点创建一个 block 迭代器，随后每个 block 都会继续调用上面提到的 isBlockReplicatedOk() 方法，直到达到 block 复制上限才停止并退出循环。</li>
+</ol>
+<p>moveBlocksToPending() 方法中有一段关于锁的代码非常有意思。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><code class="hljs java">Iterator&lt;DatanodeDescriptor&gt; nodeIter =<br>    Iterables.cycle(iterators.keySet()).iterator();<br><span class="hljs-keyword">while</span> (nodeIter.hasNext()) &#123;<br>  <span class="hljs-comment">// Cycle through each node with blocks which still need processed</span><br>  <span class="hljs-type">DatanodeDescriptor</span> <span class="hljs-variable">dn</span> <span class="hljs-operator">=</span> nodeIter.next();<br>  Iterator&lt;BlockInfo&gt; blockIt = iterators.get(dn);<br>  <span class="hljs-keyword">while</span> (blockIt.hasNext()) &#123;<br>    <span class="hljs-comment">// Process the blocks for the node until we find one that needs</span><br>    <span class="hljs-comment">// replication</span><br>    <span class="hljs-keyword">if</span> (blocksProcessed &gt;= blocksPerLock) &#123;<br>      blocksProcessed = <span class="hljs-number">0</span>;<br>      namesystem.writeUnlock();<br>      namesystem.writeLock();<br>    &#125;<br>    blocksProcessed++;<br>    <span class="hljs-keyword">if</span> (nextBlockAddedToPending(blockIt, dn)) &#123;<br>      <span class="hljs-comment">// Exit the inner &quot;block&quot; loop so an iterator for the next datanode</span><br>      <span class="hljs-comment">// is used for the next block.</span><br>      pendingCount++;<br>      <span class="hljs-keyword">break</span>;<br>    &#125;<br>  &#125;<br></code></pre></td></tr></table></figure>
+
+<p>它在释放写锁之后又立刻重新申请写锁，这是因为 <strong><code>blocksProcessed</code></strong> 变量用于追踪已处理的 block 数量。当已处理的 block 数达到预定阈值 <strong><code>blocksPerLock</code></strong> 时，通过释放当前写锁并再次获取写锁，可以让其他等待写锁的线程有机会执行。这有助于避免因长时间持有写锁而阻塞其他线程，从而提升并发性能。</p>
+<aside>
+💡
+
+<p>为什么 check 函数要先调用 processPendingReplication，然后再调用 moveBlocksToPending？不能只调用其中一个吗？</p>
+<p>在某些情况下，只调用其中一个函数就足以处理 block 的复制状态，但在另一些情况下，可能需要同时调用这两个函数。让我们看看为什么在某些情况下需要同时调用这两个函数：</p>
+<ol>
+<li>**<code>processPendingReplication</code>**：<ul>
+<li>这个函数的主要任务是处理当前处于 “pending replication” 状态的 block，确保它们的副本数达到所需数量。它通常会被调度程序周期性地调用，以确保集群中的 block 保持足够的冗余度。</li>
+<li>调用该函数时，会检查当前有哪些 block 处于 pending 状态，并尝试启动复制任务来复制这些 block。</li>
+</ul>
+</li>
+<li>**<code>moveBlocksToPending</code>**：<ul>
+<li>这个函数的主要任务是在特定情况下（例如某个节点进入 maintenance 模式或下线时），将 block 移动到 “pending replication” 队列中，等待后续的复制任务处理。</li>
+<li>调用该函数时，会检查当前是否有节点处于 maintenance 模式或下线状态，然后将相关 block 添加到待复制队列中。</li>
+</ul>
+</li>
+</ol>
+<p>为什么需要同时调用这两个函数呢？因为它们处理的问题并不完全相同：</p>
+<ul>
+<li><strong><code>processPendingReplication</code></strong> 主要关注当前正在 pending 的 block，而 <strong><code>moveBlocksToPending</code></strong> 主要关注节点状态发生变化后需要处理的 block。</li>
+<li>在某些情况下，可能会有新的 block 需要复制，或由于节点状态变化而需要将部分 block 移入等待复制的队列，因此同时调用这两个函数可以保证 block 复制状态处理的全面性和及时性。</li>
+</ul>
+</aside>
+
+<ol>
+<li>checkForCompletedNodes 方法会遍历检查节点状态，如果 block 的迁移任务已完成，就将该节点添加到 toRemove 列表中。</li>
+<li>processCompletedNodes 方法拿到 toRemove 列表，遍历后设置状态，例如改为 decommissioned，并将其从 <strong><code>outOfServiceNodeBlocks</code></strong> 和 <strong><code>pendingRep</code></strong> 中移除。</li>
+</ol>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/zh-CN/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/" class="category-chain-item">大数据</a>
+  
+  
+    <span>></span>
+    
+  <a href="/zh-CN/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/Hadoop/" class="category-chain-item">Hadoop</a>
+  
+  
+
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/zh-CN/tags/CodeDive/" class="print-no-link">#CodeDive</a>
+      
+        <a href="/zh-CN/tags/Hadoop/" class="print-no-link">#Hadoop</a>
+      
+        <a href="/zh-CN/tags/Architecture/" class="print-no-link">#Architecture</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>HDFS Decommission 代码解读与分析</div>
+      <div>https://garychow-lgtm.github.io/zh-CN/2024/06/17/HDFS-Decommission-Codes-and-Introduction/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>Gary Chow (Yimin Cao)</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2024年6月17日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/zh-CN/2024/06/25/Kubernetes-FailedScheduling-Debug/" title="Kubernetes FailedScheduling 故障排查">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">Kubernetes FailedScheduling 故障排查</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

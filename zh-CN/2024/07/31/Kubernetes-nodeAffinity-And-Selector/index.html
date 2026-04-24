@@ -1,37 +1,41 @@
 
 
 <!DOCTYPE html>
-<html lang="en,zh-CN" data-default-color-scheme=auto>
+
+<html lang="zh-CN" data-default-color-scheme=auto>
 
 
 
 <head>
   <meta charset="UTF-8">
   <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
-  <link rel="icon" href="/img/icons8-ninja-96.png">
+  <link rel="icon" href="/img/fluid.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
   <meta http-equiv="x-ua-compatible" content="ie=edge">
   
   <meta name="theme-color" content="#2f4154">
   <meta name="author" content="Gary Chow (Yimin Cao)">
-  <meta name="keywords" content="">
+  <meta name="keywords" content="Gary Chow,Yimin Cao,博客,blog,backend,data,AI">
   
     <meta name="description" content="Kubernetes 的亲和性调度K8s 中的 POD 是由调度器自动选择某个 NODE 的。默认情况下，调度器会考虑资源是否充足，并尽量让各节点的负载保持均衡。但在某些场景下，我们需要更细粒度地控制 POD 的调度，比如要求多个 POD 调度到同一个 NODE 上。此时就需要借助 Kubernetes 中的一个重要概念：亲和性。亲和性主要分为两大类：nodeAffinity 和 podAffin">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Kubernetes nodeAffinity &amp; nodeSelector Intros">
+<meta property="og:title" content="Kubernetes nodeAffinity 与 nodeSelector 介绍">
 <meta property="og:url" content="https://garychow-lgtm.github.io/zh-CN/2024/07/31/Kubernetes-nodeAffinity-And-Selector/index.html">
 <meta property="og:site_name" content="QQ Zone">
 <meta property="og:description" content="Kubernetes 的亲和性调度K8s 中的 POD 是由调度器自动选择某个 NODE 的。默认情况下，调度器会考虑资源是否充足，并尽量让各节点的负载保持均衡。但在某些场景下，我们需要更细粒度地控制 POD 的调度，比如要求多个 POD 调度到同一个 NODE 上。此时就需要借助 Kubernetes 中的一个重要概念：亲和性。亲和性主要分为两大类：nodeAffinity 和 podAffin">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2024-07-31T07:18:40.000Z">
-<meta property="article:modified_time" content="2026-04-24T02:51:29.281Z">
+<meta property="article:modified_time" content="2026-04-24T04:05:02.304Z">
 <meta property="article:author" content="Gary Chow (Yimin Cao)">
 <meta property="article:tag" content="Kubernetes">
 <meta name="twitter:card" content="summary_large_image">
   
   
   
-  <title>Kubernetes nodeAffinity &amp; nodeSelector Intros - QQ Zone</title>
+    <meta name="google-site-verification" content="inC248SVxmevou3PtGifxbw8D450-A3WNwYP2LNxpTs" />
+
+  
+  <title>Kubernetes nodeAffinity 与 nodeSelector 介绍 - QQ Zone</title>
 
   <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
 
@@ -69,7 +73,7 @@
   <script id="fluid-configs">
     var Fluid = window.Fluid || {};
     Fluid.ctx = Object.assign({}, Fluid.ctx)
-    var CONFIG = {"hostname":"garychow-lgtm.github.io","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+    var CONFIG = {"hostname":"garychow-lgtm.github.io","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/zh-CN/local-search.xml","include_content_in_search":true};
 
     if (CONFIG.web_analytics.follow_dnt) {
       var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
@@ -82,7 +86,10 @@
 
 
   
-<meta name="generator" content="Hexo 7.2.0"></head>
+<meta name="generator" content="Hexo 7.2.0"><link rel="alternate" hreflang="en" href="https://garychow-lgtm.github.io/en/2024/07/31/Kubernetes-nodeAffinity-And-Selector/index.html"/>
+<link rel="alternate" hreflang="zh-CN" href="https://garychow-lgtm.github.io/zh-CN/2024/07/31/Kubernetes-nodeAffinity-And-Selector/index.html"/>
+<link rel="alternate" hreflang="x-default" href="https://garychow-lgtm.github.io/en/2024/07/31/Kubernetes-nodeAffinity-And-Selector/index.html"/>
+</head>
 
 
 <body>
@@ -113,7 +120,7 @@
           
           
             <li class="nav-item">
-              <a class="nav-link" href="/" target="_self">
+              <a class="nav-link" href="/zh-CN/" target="_self">
                 <i class="iconfont icon-home-fill"></i>
                 <span>首页</span>
               </a>
@@ -125,7 +132,7 @@
           
           
             <li class="nav-item">
-              <a class="nav-link" href="/archives/" target="_self">
+              <a class="nav-link" href="/zh-CN/archives/" target="_self">
                 <i class="iconfont icon-archive-fill"></i>
                 <span>归档</span>
               </a>
@@ -137,7 +144,7 @@
           
           
             <li class="nav-item">
-              <a class="nav-link" href="/categories/" target="_self">
+              <a class="nav-link" href="/zh-CN/categories/" target="_self">
                 <i class="iconfont icon-category-fill"></i>
                 <span>分类</span>
               </a>
@@ -149,7 +156,7 @@
           
           
             <li class="nav-item">
-              <a class="nav-link" href="/tags/" target="_self">
+              <a class="nav-link" href="/zh-CN/tags/" target="_self">
                 <i class="iconfont icon-tags-fill"></i>
                 <span>标签</span>
               </a>
@@ -161,7 +168,7 @@
           
           
             <li class="nav-item">
-              <a class="nav-link" href="/en/about/" target="_self">
+              <a class="nav-link" href="/zh-CN/about/" target="_self">
                 <i class="iconfont icon-user-fill"></i>
                 <span>关于</span>
               </a>
@@ -221,7 +228,7 @@
       <div class="banner-text text-center fade-in-up">
         <div class="h2">
           
-            <span id="subtitle" data-typed-text="Kubernetes nodeAffinity &amp; nodeSelector Intros"></span>
+            <span id="subtitle" data-typed-text="Kubernetes nodeAffinity 与 nodeSelector 介绍"></span>
           
         </div>
 
@@ -292,7 +299,7 @@
       <div class="container nopadding-x-md" id="board-ctn">
         <div id="board">
           <article class="post-content mx-auto">
-            <h1 id="seo-header">Kubernetes nodeAffinity &amp; nodeSelector Intros</h1>
+            <h1 id="seo-header">Kubernetes nodeAffinity 与 nodeSelector 介绍</h1>
             
             
               <div class="markdown-body">
@@ -420,12 +427,12 @@
     
       <span class="category-chain">
         
-  <a href="/categories/%E4%BA%91%E5%8E%9F%E7%94%9F/" class="category-chain-item">云原生</a>
+  <a href="/zh-CN/categories/%E4%BA%91%E5%8E%9F%E7%94%9F/" class="category-chain-item">云原生</a>
   
   
     <span>></span>
     
-  <a href="/categories/%E4%BA%91%E5%8E%9F%E7%94%9F/Kubernetes/" class="category-chain-item">Kubernetes</a>
+  <a href="/zh-CN/categories/%E4%BA%91%E5%8E%9F%E7%94%9F/Kubernetes/" class="category-chain-item">Kubernetes</a>
   
   
 
@@ -442,7 +449,7 @@
     <div class="post-meta">
       <i class="iconfont icon-tags"></i>
       
-        <a href="/tags/Kubernetes/" class="print-no-link">#Kubernetes</a>
+        <a href="/zh-CN/tags/Kubernetes/" class="print-no-link">#Kubernetes</a>
       
     </div>
   
@@ -454,7 +461,7 @@
 
   <div class="license-box my-3">
     <div class="license-title">
-      <div>Kubernetes nodeAffinity &amp; nodeSelector Intros</div>
+      <div>Kubernetes nodeAffinity 与 nodeSelector 介绍</div>
       <div>https://garychow-lgtm.github.io/zh-CN/2024/07/31/Kubernetes-nodeAffinity-And-Selector/</div>
     </div>
     <div class="license-meta">
@@ -509,8 +516,8 @@
                   <article class="post-next col-6">
                     
                     
-                      <a href="/zh-CN/2024/07/31/Kubernetes-Probes/" title="Kubernetes Probes Intros">
-                        <span class="hidden-mobile">Kubernetes Probes Intros</span>
+                      <a href="/zh-CN/2024/07/31/Kubernetes-Probes/" title="Kubernetes Probes 介绍">
+                        <span class="hidden-mobile">Kubernetes Probes 介绍</span>
                         <span class="visible-mobile">下一篇</span>
                         <i class="iconfont icon-arrowright"></i>
                       </a>
@@ -764,10 +771,6 @@
   <script  src="/js/local-search.js" ></script>
 
 
-
-
-  
-<script src="/js/i18n-nav.js"></script>
 
 
 
